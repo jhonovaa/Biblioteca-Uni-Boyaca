@@ -88,35 +88,62 @@
                     response.sendRedirect("libro.jsp?err=en_uso");
                 }
                 return;
-            } else if (accion.equals("insertar") || accion.equals("actualizar")) {
-                try {
-                    Libro l = new Libro();
-                    l.setTitulo(request.getParameter("txtTitulo"));
-                    l.setIsbn(request.getParameter("txtIsbn"));
-                    l.setIdAutor(Integer.parseInt(request.getParameter("txtAutor")));
-                    l.setIdCategoria(Integer.parseInt(request.getParameter("txtCategoria")));
-                    String edi = request.getParameter("txtEditorial");
-                    l.setIdEditorial((edi != null && !edi.isEmpty()) ? Integer.parseInt(edi) : 0);
-                    l.setDisponible(Integer.parseInt(request.getParameter("txtStock")));
-
-                    boolean res = false;
-                    if (accion.equals("actualizar")) {
-                        l.setIdLibro(Integer.parseInt(request.getParameter("txtId")));
-                        res = dao.actualizar(l);
-                    } else {
-                        res = dao.insertar(l);
-                    }
-
-                    if (res) {
-                        request.setAttribute("mensaje", "Operación exitosa con el libro.");
-                    }
-                } catch (Exception e) {
-                    request.setAttribute("error", "Error: " + e.getMessage());
-                }
             }
         }
     }
+
+    // Lógica de PDF fuera del bloque de Docente para que estudiantes también descarguen
+    if (accion != null && (accion.equals("PDF") || accion.equals("descargar"))) {
+        String idStr = request.getParameter("id");
+        try {
+            if (idStr != null && !idStr.isEmpty()) {
+                int idLibro = Integer.parseInt(idStr);
+                Libro libro = dao.buscarPorId(idLibro);
+
+                if (libro != null && libro.getUrlPdf() != null && !libro.getUrlPdf().isEmpty()) {
+                    String filePath = "C:/Users/angel/OneDrive/Desktop/bibliotecaUniboyaca/bibliotecaUniboyaca/biblioteca_uploads/" + libro.getUrlPdf();
+                    java.io.File downloadFile = new java.io.File(filePath);
+
+                    if (downloadFile.exists()) {
+                        java.io.FileInputStream inStream = new java.io.FileInputStream(downloadFile);
+
+                        String mimeType = getServletContext().getMimeType(filePath);
+                        if (mimeType == null) {
+                            mimeType = "application/pdf";
+                        }
+
+                        response.setContentType(mimeType);
+                        response.setContentLength((int) downloadFile.length());
+
+                        String headerKey = "Content-Disposition";
+                        String headerValue = String.format("attachment; filename=\"%s\"", libro.getTitulo() + ".pdf");
+                        response.setHeader(headerKey, headerValue);
+
+                        java.io.OutputStream outStream = response.getOutputStream();
+                        byte[] buffer = new byte[4096];
+                        int bytesRead = -1;
+
+                        while ((bytesRead = inStream.read(buffer)) != -1) {
+                            outStream.write(buffer, 0, bytesRead);
+                        }
+
+                        inStream.close();
+                        outStream.flush();
+                        return; // IMPORTANTE: terminar el flujo aquí para no enviar el resto del HTML
+                    } else {
+                        response.sendRedirect("libro.jsp?err=archivo_no_encontrado");
+                    }
+                } else {
+                    response.sendRedirect("libro.jsp?err=sin_pdf");
+                }
+            }
+        } catch (Exception e) {
+            response.sendRedirect("libro.jsp?err=error_descarga");
+        }
+        return;
+    }
 %>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -361,6 +388,15 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+
+            .book-cover-preview {
+                width: 120px;
+                height: 180px;
+                object-fit: cover;
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
         </style>
     </head>
     <body class="dark-mode">
@@ -373,14 +409,29 @@
                 <p class="opacity-50 fs-5" style="color: var(--brand-red);">Gestión de catálogo, autores y categorías</p>
             </header>
 
-            <% if (request.getAttribute("mensaje") != null) {%>
+            <%
+                String msj = (String) request.getAttribute("mensaje");
+                if (msj == null) {
+                    msj = (String) session.getAttribute("mensaje");
+                }
+                if (msj != null) {
+                    session.removeAttribute("mensaje");
+            %>
             <div class="alert alert-success border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green); font-weight: 600;">
-                <i class="bi bi-check-circle-fill me-2"></i> <%= request.getAttribute("mensaje")%>
+                <i class="bi bi-check-circle-fill me-2"></i> <%= msj%>
             </div>
             <% } %>
-            <% if (request.getAttribute("error") != null) {%>
+
+            <%
+                String err = (String) request.getAttribute("error");
+                if (err == null) {
+                    err = (String) session.getAttribute("error");
+                }
+                if (err != null) {
+                    session.removeAttribute("error");
+            %>
             <div class="alert alert-danger border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(255, 59, 48, 0.1); color: var(--brand-red); font-weight: 600;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= request.getAttribute("error")%>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= err%>
             </div>
             <% } %>
 
@@ -394,7 +445,7 @@
                             <%= (libEdit.getIdLibro() > 0) ? "Editar Libro" : "Nuevo Libro"%>
                         </h4>
 
-                        <form method="POST" action="libro.jsp">
+                        <form method="POST" action="LibroServlet" enctype="multipart/form-data">
                             <input type="hidden" name="txtId" value="<%= libEdit.getIdLibro()%>">
 
                             <div class="mb-3">
@@ -451,6 +502,31 @@
                                 <input type="number" name="txtStock" class="form-control form-control-apple" value="<%= (libEdit.getIdLibro() > 0) ? libEdit.getDisponible() : ""%>" min="0" required>
                             </div>
 
+                            <%-- Botón para subir la Portada en Imagen --%>
+                            <div class="mb-3">
+                                <label class="info-label">Portada del Libro (Imagen)</label>
+                                <div class="input-group input-group-apple">
+                                    <input type="file" name="fileImg" id="fileImg" class="form-control form-control-apple" accept="image/png, image/jpeg, image/jpg">
+                                    <button type="button" class="btn-plus-apple" onclick="document.getElementById('fileImg').click();" title="Seleccionar imagen"><i class="bi bi-image"></i></button>
+                                </div>
+                                <%-- SE DESCOMENTÓ: Muestra la información de la imagen subida en el formulario de edición --%>
+                                <% if (libEdit.getUrlImg() != null && !libEdit.getUrlImg().isEmpty()) {%>
+                                <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill"></i> Imagen actual: <%= libEdit.getUrlImg()%></small>
+                                <% }%> 
+                            </div>
+
+                            <%-- Botón para subir el PDF --%>
+                            <div class="mb-4">
+                                <label class="info-label">Documento PDF (Opcional)</label>
+                                <div class="input-group input-group-apple">
+                                    <input type="file" name="filePdf" id="filePdf" class="form-control form-control-apple" accept="application/pdf">
+                                    <button type="button" class="btn-plus-apple" onclick="document.getElementById('filePdf').click();" title="Seleccionar archivo"><i class="bi bi-file-earmark-pdf"></i></button>
+                                </div>
+                                <% if (libEdit.getUrlPdf() != null && !libEdit.getUrlPdf().isEmpty()) {%>
+                                <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill"></i> <%= libEdit.getUrlPdf()%></small>
+                                <% }%>
+                            </div>
+
                             <button type="submit" name="accion" value="<%= (libEdit.getIdLibro() > 0) ? "actualizar" : "insertar"%>" class="btn-apple-red w-100 shadow-sm">
                                 <%= (libEdit.getIdLibro() > 0) ? "Guardar Cambios" : "Registrar Libro"%>
                             </button>
@@ -485,7 +561,7 @@
                                         <th>Detalles del Libro</th>
                                         <th class="text-center">Clasificación</th>
                                         <th class="text-center">Stock</th>
-                                        <% if (rol.equals("Docente")) { %> <th class="text-center">Acciones</th> <% } %>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -495,7 +571,7 @@
                                     %>
                                     <tr><td colspan="4" class="text-center py-5 opacity-50">No hay libros registrados en el inventario.</td></tr>
                                     <%  } else {
-                                        for (Libro b : lista) {
+                                            for (Libro b : lista) {
                                     %>
                                     <tr>
                                         <td>
@@ -515,17 +591,28 @@
                                                 <%= b.getDisponible()%> disp.
                                             </span>
                                         </td>
-                                        <% if (rol.equals("Docente")) {%>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
-                                                <a href="libro.jsp?idEdit=<%= b.getIdLibro()%>" class="btn-action-primary text-decoration-none" title="Editar Libro"><i class="bi bi-pencil-square"></i> Editar</a>
-                                                <button onclick="confirmarEliminar(<%= b.getIdLibro()%>)" class="btn-action-danger text-decoration-none" title="Eliminar Libro"><i class="bi bi-trash3"></i> Borrar</button>
+                                                <% if (rol.equals("Docente")) {%>
+                                                <a href="libro.jsp?idEdit=<%= b.getIdLibro()%>" class="btn-action-primary text-decoration-none" title="Editar Libro"><i class="bi bi-pencil-square"></i></a>
+                                                <button onclick="confirmarEliminar(<%= b.getIdLibro()%>)" class="btn-action-danger text-decoration-none" title="Eliminar Libro"><i class="bi bi-trash3"></i></button>
+                                                <% } %>
+
+                                                <%-- BOTÓN PARA VER DETALLES (MODAL) --%>
+                                                <button class="btn-export border-0" data-bs-toggle="modal" data-bs-target="#modalDetalle<%= b.getIdLibro()%>" title="Ver Info del Libro">
+                                                    <i class="bi bi-eye" style="color: var(--brand-red);"></i>
+                                                </button>
+
+                                                <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
+                                                <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn btn-sm btn-outline-danger" title="Descargar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                                                <% } else { %>
+                                                <button class="btn btn-sm btn-outline-secondary disabled" title="Sin PDF disponible"><i class="bi bi-file-earmark-x"></i></button>
+                                                <% } %>
                                             </div>
                                         </td>
-                                        <% } %>
                                     </tr>
                                     <% }
-                                } %>
+                                        } %>
                                 </tbody>
                             </table>
                         </div>
@@ -534,7 +621,83 @@
             </div>
         </div>
 
+        <%-- ==========================================
+             MODALES DE DETALLE DE LIBROS 
+             ========================================== --%>
+        <% if (lista != null) {
+            for (Libro b : lista) {%>
+        <div class="modal fade" id="modalDetalle<%= b.getIdLibro()%>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-body p-5">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-book-half fs-1"></i>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        
+                        <div class="row align-items-center">
+                            <%-- Columna para la imagen --%>
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <%-- SE CORRIGIÓ: Lógica actualizada para renderizar la portada desde el Servlet --%>
+                                <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
+                                    <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) { %>
+                                        <img src="LibroServlet?accion=verImagen&id=<%= b.getIdLibro() %>" class="book-cover-preview w-100 h-100" style="object-fit: cover;" alt="Portada de <%= b.getTitulo() %>">
+                                    <% } else { %>
+                                        <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                        <span class="small opacity-50">Portada no disponible</span>
+                                    <% } %>
+                                </div>
+                            </div>
 
+                            <%-- Columna para la información --%>
+                            <div class="col-md-8">
+                                <h3 class="fw-bold mb-1"><%= b.getTitulo()%></h3>
+                                <p class="small opacity-50 mb-4">ISBN: <%= b.getIsbn()%></p>
+
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Autor</p>
+                                        <p class="fw-bold mb-0"><%= mapAutores.getOrDefault(b.getIdAutor(), "Desconocido")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Categoría</p>
+                                        <p class="fw-bold mb-0" style="color: var(--brand-red);"><%= mapCategorias.getOrDefault(b.getIdCategoria(), "Sin Categoría")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Editorial</p>
+                                        <p class="fw-bold mb-0"><%= mapEditoriales.getOrDefault(b.getIdEditorial(), "N/A")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Stock Disponible</p>
+                                        <p class="fw-bold mb-0 <%= b.getDisponible() > 0 ? "text-success" : "text-danger" %>"><%= b.getDisponible()%> unidades</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" style="border-color: var(--border-color);">
+                        
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                            <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
+                            <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn-apple-red text-decoration-none">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF
+                            </a>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }
+        } %>
+
+
+        <%-- ==========================================
+             MODALES DE CREACIÓN RÁPIDA 
+             ========================================== --%>
         <div class="modal fade" id="modalAutor" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
@@ -628,83 +791,83 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                                    function exportarExcel() {
-                                                        const table = document.getElementById("tablaLibros");
-                                                        const wb = XLSX.utils.table_to_book(table, {sheet: "Catalogo_Libros"});
-                                                        XLSX.writeFile(wb, "Reporte_Catalogo_Uniboyaca.xlsx");
-                                                    }
+            function exportarExcel() {
+                const table = document.getElementById("tablaLibros");
+                const wb = XLSX.utils.table_to_book(table, {sheet: "Catalogo_Libros"});
+                XLSX.writeFile(wb, "Reporte_Catalogo_Uniboyaca.xlsx");
+            }
 
-                                                    function exportarPDF() {
-                                                        const {jsPDF} = window.jspdf;
-                                                        const doc = new jsPDF('p', 'pt', 'a4');
-                                                        doc.setFontSize(18);
-                                                        doc.setTextColor(255, 59, 48);
-                                                        doc.text("UNIBOYACA - CATALOGO DE LIBROS", 40, 40);
-                                                        doc.autoTable({
-                                                            html: '#tablaLibros',
-                                                            startY: 60,
-                                                            theme: 'grid',
-                                                            headStyles: {fillColor: [255, 59, 48]},
-                                                            styles: {fontSize: 9}
-                                                        });
-                                                        doc.save("Reporte_Catalogo.pdf");
-                                                    }
+            function exportarPDF() {
+                const {jsPDF} = window.jspdf;
+                const doc = new jsPDF('p', 'pt', 'a4');
+                doc.setFontSize(18);
+                doc.setTextColor(255, 59, 48);
+                doc.text("UNIBOYACA - CATALOGO DE LIBROS", 40, 40);
+                doc.autoTable({
+                    html: '#tablaLibros',
+                    startY: 60,
+                    theme: 'grid',
+                    headStyles: {fillColor: [255, 59, 48]},
+                    styles: {fontSize: 9}
+                });
+                doc.save("Reporte_Catalogo.pdf");
+            }
 
-                                                    function getSwalConfig() {
-                                                        const isDark = document.body.classList.contains('dark-mode');
-                                                        return {
-                                                            background: isDark ? '#1c1c1e' : '#ffffff',
-                                                            color: isDark ? '#f5f5f7' : '#121212',
-                                                            confirmButtonColor: '#ff3b30',
-                                                            cancelButtonColor: '#6c757d',
-                                                            customClass: {popup: 'swal2-popup'}
-                                                        };
-                                                    }
+            function getSwalConfig() {
+                const isDark = document.body.classList.contains('dark-mode');
+                return {
+                    background: isDark ? '#1c1c1e' : '#ffffff',
+                    color: isDark ? '#f5f5f7' : '#121212',
+                    confirmButtonColor: '#ff3b30',
+                    cancelButtonColor: '#6c757d',
+                    customClass: {popup: 'swal2-popup'}
+                };
+            }
 
-                                                    function confirmarEliminar(idLibro) {
-                                                        Swal.fire({
-                                                            ...getSwalConfig(),
-                                                            title: '¿Eliminar este libro?',
-                                                            text: "Esta acción borrará el libro del catálogo de forma permanente.",
-                                                            icon: 'warning',
-                                                            showCancelButton: true,
-                                                            confirmButtonText: 'Sí, eliminar',
-                                                            cancelButtonText: 'Cancelar'
-                                                        }).then((result) => {
-                                                            if (result.isConfirmed) {
-                                                                window.location.href = "libro.jsp?accion=eliminar&id=" + idLibro;
-                                                            }
-                                                        });
-                                                    }
+            function confirmarEliminar(idLibro) {
+                Swal.fire({
+                    ...getSwalConfig(),
+                    title: '¿Eliminar este libro?',
+                    text: "Esta acción borrará el libro del catálogo de forma permanente.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = "libro.jsp?accion=eliminar&id=" + idLibro;
+                    }
+                });
+            }
 
-                                                    const body = document.body;
-                                                    function applyTheme(isDark) {
-                                                        if (isDark)
-                                                            body.classList.add('dark-mode');
-                                                        else
-                                                            body.classList.remove('dark-mode');
-                                                    }
-                                                    if (localStorage.getItem('theme') === 'light')
-                                                        applyTheme(false);
-                                                    else
-                                                        applyTheme(true);
+            const body = document.body;
+            function applyTheme(isDark) {
+                if (isDark)
+                    body.classList.add('dark-mode');
+                else
+                    body.classList.remove('dark-mode');
+            }
+            if (localStorage.getItem('theme') === 'light')
+                applyTheme(false);
+            else
+                applyTheme(true);
 
-                                                    document.addEventListener('click', function (e) {
-                                                        const target = e.target.closest('#theme-toggle');
-                                                        if (target) {
-                                                            const isNowDark = !body.classList.contains('dark-mode');
-                                                            localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
-                                                            applyTheme(isNowDark);
-                                                        }
-                                                    });
+            document.addEventListener('click', function (e) {
+                const target = e.target.closest('#theme-toggle');
+                if (target) {
+                    const isNowDark = !body.classList.contains('dark-mode');
+                    localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+                    applyTheme(isNowDark);
+                }
+            });
 
-                                                    const observer = new IntersectionObserver((entries) => {
-                                                        entries.forEach(entry => {
-                                                            if (entry.isIntersecting)
-                                                                entry.target.classList.add('active');
-                                                        });
-                                                    }, {threshold: 0.1});
-                                                    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting)
+                        entry.target.classList.add('active');
+                });
+            }, {threshold: 0.1});
+            document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
 
         <% if ("eliminado".equals(request.getParameter("msj"))) { %>
@@ -726,12 +889,12 @@
 
         <% if (request.getAttribute("mensaje") != null) {%>
         <script>
-        Swal.fire({...getSwalConfig(), title: '¡Éxito!', text: '<%= request.getAttribute("mensaje")%>', icon: 'success'});
+            Swal.fire({...getSwalConfig(), title: '¡Éxito!', text: '<%= request.getAttribute("mensaje")%>', icon: 'success'});
         </script>
         <% } %>
         <% if (request.getAttribute("error") != null) {%>
         <script>
-        Swal.fire({...getSwalConfig(), title: 'Error', text: '<%= request.getAttribute("error")%>', icon: 'error'});
+            Swal.fire({...getSwalConfig(), title: 'Error', text: '<%= request.getAttribute("error")%>', icon: 'error'});
         </script>
         <% }%>
         <script type="text/javascript">

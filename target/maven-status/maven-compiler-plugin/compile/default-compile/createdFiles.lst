@@ -1,3 +1,4 @@
+co\edu\uniboyaca\biblioteca\controller\LibroServlet.class
 co\edu\uniboyaca\biblioteca\controller\ProcesarQuejaServlet.class
 co\edu\uniboyaca\biblioteca\dao\QuejaDAO.class
 co\edu\uniboyaca\biblioteca\dao\PrestamoDAOImpl.class

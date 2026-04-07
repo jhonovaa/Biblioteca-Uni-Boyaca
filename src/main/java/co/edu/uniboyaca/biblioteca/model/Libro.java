@@ -9,6 +9,8 @@ public class Libro {
     private int idCategoria;
     private int idEditorial;
     private int disponible; // Este representa la columna 'stock'
+    private String urlPdf; // Nombre del archivo o ruta
+    private String urlImg; // NUEVO: Nombre del archivo de la portada
 
     public Libro() {
     }
@@ -69,4 +71,22 @@ public class Libro {
     public void setDisponible(int disponible) {
         this.disponible = disponible;
     }
+
+    public String getUrlPdf() {
+        return urlPdf;
+    }
+
+    public void setUrlPdf(String urlPdf) {
+        this.urlPdf = urlPdf;
+    }
+
+    // NUEVOS Getters y Setters para la imagen
+    public String getUrlImg() {
+        return urlImg;
+    }
+
+    public void setUrlImg(String urlImg) {
+        this.urlImg = urlImg;
+    }
+    
 }

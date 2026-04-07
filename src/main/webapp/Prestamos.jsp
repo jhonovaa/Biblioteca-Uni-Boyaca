@@ -1,3 +1,7 @@
+<%@page import="java.sql.Connection"%>
+<%@page import="java.sql.PreparedStatement"%>
+<%@page import="java.sql.ResultSet"%>
+<%@page import="co.edu.uniboyaca.biblioteca.util.Conexion"%>
 <%@page import="co.edu.uniboyaca.biblioteca.model.Usuarios"%>
 <%@page import="co.edu.uniboyaca.biblioteca.dao.UsuarioDAOImpl"%>
 <%@page import="co.edu.uniboyaca.biblioteca.model.Libro"%>
@@ -19,6 +23,7 @@
     String rol = (String) session.getAttribute("tipoUsuario");
 
     PrestamoDAOImpl pDao = new PrestamoDAOImpl();
+    LibroDAOImpl lDao = new LibroDAOImpl(); // Instancia para buscar la portada de los libros
 
     // Cargamos la lista de préstamos desde el principio
     List<Prestamos> listaP = pDao.listarPrestamos();
@@ -268,7 +273,6 @@
                                 <select name="id_libro" class="form-select form-control-apple" required>
                                     <option value="">Seleccione un libro...</option>
                                     <%
-                                        LibroDAOImpl lDao = new LibroDAOImpl();
                                         for (Libro l : lDao.listar()) {
                                     %>
                                     <option value="<%= l.getIdLibro()%>"><%= l.getTitulo()%></option>
@@ -321,9 +325,9 @@
                                     %>
                                     <tr><td colspan="5" class="text-center py-5 opacity-50">No hay registros en el sistema.</td></tr>
                                     <%
-                                        } else {
-                                            for (Prestamos p : listaP) {
-                                                if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
+                                    } else {
+                                        for (Prestamos p : listaP) {
+                                            if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
                                     %>
                                     <tr>
                                         <td>
@@ -375,34 +379,80 @@
             </div>
         </div>
 
-        <%-- --- SECCIÓN DE MODALES DE DETALLE (Diseño Premium) --- --%>
+        <%-- --- SECCIÓN DE MODALES DE DETALLE (Diseño Premium con Imagen) --- --%>
         <%
             if (listaP != null) {
                 for (Prestamos p : listaP) {
                     if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
+
+                        // 1. Buscamos el libro para traer la portada
+                        Libro libroModal = lDao.buscarPorId(p.getIdLibro());
+
+                        // 2. Buscamos si tiene multa y si fue pagada para condicionar el botón de recibo
+                        double montoMulta = 0;
+                        boolean multaPagada = false;
+                        try {
+                            Connection conM = Conexion.conectar();
+                            PreparedStatement psM = conM.prepareStatement("SELECT monto, estado_pago FROM multas WHERE id_prestamo = ?");
+                            psM.setInt(1, p.getIdPrestamo());
+                            ResultSet rsM = psM.executeQuery();
+                            if (rsM.next()) {
+                                montoMulta = rsM.getDouble("monto");
+                                multaPagada = rsM.getInt("estado_pago") == 1;
+                            }
+                            rsM.close();
+                            psM.close();
+                            conM.close();
+                        } catch (Exception e) {
+                        }
+
+                        // Validacion estricta para mostrar el recibo
+                        boolean mostrarRecibo = p.getEstado().equals("Devuelto") && (montoMulta == 0 || multaPagada);
+
+                        // SE CORRIGIÓ: Agregado .toString() para evitar Type Mismatch
+                        String fechaReferencia = (p.getFechaDevolucionReal() != null) ? p.getFechaDevolucionReal().toString() : "N/A";
         %>
         <div class="modal fade" id="modalDetalle<%= p.getIdPrestamo()%>" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content shadow-lg border-0">
                     <div class="modal-body p-5">
 
-                        <div class="text-center mb-4">
-                            <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger">
                                 <i class="bi bi-journal-bookmark-fill fs-1"></i>
                             </div>
-                            <h3 class="fw-bold mb-1">Detalle del Préstamo</h3>
-                            <p class="small opacity-50">Registro Oficial #<%= p.getIdPrestamo()%></p>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
-                        <div class="p-4 rounded-4 mb-4" style="background: var(--soft-gray); border: 1px solid var(--border-color);">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <p class="info-label mb-1">📖 Libro Prestado</p>
-                                    <p class="fw-bold mb-0 fs-5"><%= p.getTituloLibro()%></p>
+                        <div class="row align-items-center mb-4">
+                            <%-- Columna de la Portada --%>
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
+                                    <% if (libroModal != null && libroModal.getUrlImg() != null && !libroModal.getUrlImg().isEmpty()) {%>
+                                    <img src="LibroServlet?accion=verImagen&id=<%= libroModal.getIdLibro()%>" class="w-100 h-100" style="object-fit: cover; border-radius: 8px;" alt="Portada">
+                                    <% } else { %>
+                                    <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                    <span class="small opacity-50">Sin Portada</span>
+                                    <% }%>
                                 </div>
-                                <div class="col-12">
-                                    <p class="info-label mb-1">👤 Usuario a cargo</p>
-                                    <p class="fw-bold mb-0" style="color: var(--brand-red);"><%= p.getNombreUsuario()%></p>
+                            </div>
+
+                            <%-- Columna de la Información Básica --%>
+                            <div class="col-md-8">
+                                <h3 class="fw-bold mb-1">Detalle del Préstamo</h3>
+                                <p class="small opacity-50 mb-3">Registro Oficial #<%= p.getIdPrestamo()%></p>
+
+                                <div class="p-3 rounded-4" style="background: var(--soft-gray); border: 1px solid var(--border-color);">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <p class="info-label mb-1">📖 Libro Prestado</p>
+                                            <p class="fw-bold mb-0 fs-5"><%= p.getTituloLibro()%></p>
+                                        </div>
+                                        <div class="col-12">
+                                            <p class="info-label mb-1">👤 Usuario a cargo</p>
+                                            <p class="fw-bold mb-0" style="color: var(--brand-red);"><%= p.getNombreUsuario()%></p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -426,7 +476,7 @@
                                 <div class="p-3 rounded-4 h-100 d-flex flex-column justify-content-center" style="border: 1px solid var(--border-color);">
                                     <i class="bi bi-calendar-check text-success mb-2 fs-5"></i>
                                     <p class="info-label mb-1" style="font-size:0.65rem;">Real</p>
-                                    <p class="small fw-bold mb-0"><%= (p.getFechaDevolucionReal() != null) ? p.getFechaDevolucionReal() : "Pendiente"%></p>
+                                    <p class="small fw-bold mb-0"><%= fechaReferencia%></p>
                                 </div>
                             </div>
                         </div>
@@ -444,9 +494,17 @@
                             <% } %>
                         </div>
 
-                        <button type="button" class="btn-apple-red w-100 py-3 shadow-sm fs-6" data-bs-dismiss="modal">
-                            Cerrar Detalles
-                        </button>
+                        <%-- BOTONES DEL MODAL INCLUYENDO EL RECIBO (CONDICIONADO) --%>
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+
+                            <%-- Botón de Paz y Salvo / Recibo. Solo aparece si ya está devuelto y pagado --%>
+                            <% if (mostrarRecibo) {%>
+                            <button type="button" class="btn btn-outline-success rounded-pill px-4 fw-bold" onclick="generarRecibo(<%= p.getIdPrestamo()%>, '<%= p.getNombreUsuario()%>', '<%= p.getTituloLibro().replace("'", "\\'")%>', <%= montoMulta%>, '<%= fechaReferencia%>')">
+                                <i class="bi bi-receipt me-2"></i>Descargar Recibo / Paz y Salvo
+                            </button>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -461,106 +519,195 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                                    // Lógica de Exportación
-                                                    function exportarExcel() {
-                                                        const table = document.getElementById("tablaPrestamos");
-                                                        const wb = XLSX.utils.table_to_book(table, {sheet: "Prestamos"});
-                                                        XLSX.writeFile(wb, "Reporte_Prestamos_Uniboyaca.xlsx");
-                                                    }
+                                // --- NUEVA LÓGICA: GENERACIÓN DE RECIBO EN PDF CORREGIDA ---
+                                // Se eliminaron los backticks (Template Literals) porque el servidor de Java
+                                // los confundía con sus propias variables EL de JSP.
+                                function generarRecibo(id, usuario, libro, montoMulta, fechaReferencia) {
+                                    const {jsPDF} = window.jspdf;
+                                    const doc = new jsPDF('p', 'pt', 'a5'); // Formato A5 para recibos
 
-                                                    function exportarPDF() {
-                                                        const {jsPDF} = window.jspdf;
-                                                        const doc = new jsPDF('p', 'pt', 'a4');
-                                                        doc.setFontSize(18);
-                                                        doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
-                                                        doc.text("UNIBOYACA - REPORTE DE PRÉSTAMOS", 40, 40);
-                                                        doc.autoTable({
-                                                            html: '#tablaPrestamos',
-                                                            startY: 60,
-                                                            theme: 'grid',
-                                                            headStyles: {fillColor: [255, 59, 48]},
-                                                            styles: {fontSize: 9}
-                                                        });
-                                                        doc.save("Reporte_Prestamos.pdf");
-                                                    }
+                                    // Fondo y bordes
+                                    doc.setDrawColor(200, 200, 200);
+                                    doc.roundedRect(20, 20, 380, 500, 10, 10);
 
-                                                    // Función para obtener configuracion de alertas dinámicas
-                                                    function getSwalConfig() {
-                                                        const isDark = document.body.classList.contains('dark-mode');
-                                                        return {
-                                                            background: isDark ? '#1c1c1e' : '#ffffff',
-                                                            color: isDark ? '#f5f5f7' : '#121212',
-                                                            confirmButtonColor: '#ff3b30',
-                                                            cancelButtonColor: '#6c757d',
-                                                            customClass: {popup: 'swal2-popup'} // Clase para bordes redondeados
-                                                        };
-                                                    }
+                                    // Encabezado
+                                    doc.setFontSize(18);
+                                    doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
+                                    doc.text("UNIBOYACA - BIBLIOTECA", 210, 60, null, null, "center");
 
-                                                    function sancionar(idPrestamo, idUsuario) {
-                                                        const config = getSwalConfig();
-                                                        Swal.fire({
-                                                            ...config,
-                                                            title: 'Generar Sanción',
-                                                            text: "Ingrese el monto de la multa (COP):",
-                                                            input: 'number',
-                                                            inputAttributes: {min: 0, step: 1000},
-                                                            showCancelButton: true,
-                                                            confirmButtonText: 'Aplicar Multa',
-                                                            cancelButtonText: 'Cancelar'
-                                                        }).then((result) => {
-                                                            if (result.isConfirmed && result.value) {
-                                                                window.location.href = "MultaController?accion=crear&idP=" + idPrestamo + "&idU=" + idUsuario + "&monto=" + result.value;
-                                                            }
-                                                        });
-                                                    }
+                                    doc.setFontSize(12);
+                                    doc.setTextColor(100, 100, 100);
+                                    doc.text("SISTEMA DE GESTIÓN DE PRÉSTAMOS", 210, 80, null, null, "center");
 
-                                                    function confirmarEliminar(idP) {
-                                                        const config = getSwalConfig();
-                                                        Swal.fire({
-                                                            ...config,
-                                                            title: '¿Eliminar registro?',
-                                                            text: "Esta acción es permanente y no se puede deshacer.",
-                                                            icon: 'warning',
-                                                            showCancelButton: true,
-                                                            confirmButtonText: 'Sí, eliminar',
-                                                            cancelButtonText: 'Cancelar'
-                                                        }).then((result) => {
-                                                            if (result.isConfirmed) {
-                                                                window.location.href = "PrestamoController?accion=eliminar&idP=" + idP;
-                                                            }
-                                                        });
-                                                    }
+                                    doc.line(40, 100, 380, 100);
 
-                                                    // Lógica de UI (Tema y Animaciones)
-                                                    const body = document.body;
-                                                    function applyTheme(isDark) {
-                                                        if (isDark)
-                                                            body.classList.add('dark-mode');
-                                                        else
-                                                            body.classList.remove('dark-mode');
-                                                    }
+                                    // Título del Documento
+                                    doc.setFontSize(14);
+                                    doc.setTextColor(0, 0, 0);
+                                    doc.setFont("helvetica", "bold");
+                                    doc.text("CERTIFICADO DE PAZ Y SALVO / RECIBO", 210, 130, null, null, "center");
 
-                                                    if (localStorage.getItem('theme') === 'light')
-                                                        applyTheme(false);
-                                                    else
-                                                        applyTheme(true);
+                                    // Datos de la Transacción
+                                    doc.setFontSize(11);
+                                    doc.setFont("helvetica", "normal");
 
-                                                    document.addEventListener('click', function (e) {
-                                                        const target = e.target.closest('#theme-toggle');
-                                                        if (target) {
-                                                            const isNowDark = !body.classList.contains('dark-mode');
-                                                            localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
-                                                            applyTheme(isNowDark);
-                                                        }
-                                                    });
+                                    const fechaActual = new Date().toLocaleDateString();
+                                    const horaActual = new Date().toLocaleTimeString();
 
-                                                    const observer = new IntersectionObserver((entries) => {
-                                                        entries.forEach(entry => {
-                                                            if (entry.isIntersecting)
-                                                                entry.target.classList.add('active');
-                                                        });
-                                                    }, {threshold: 0.1});
-                                                    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+                                    doc.text("No. de Transacción:", 50, 180);
+                                    doc.text("TX-000" + id, 200, 180);
+                                    doc.text("Fecha de Emisión:", 50, 210);
+                                    doc.text(fechaActual + " - " + horaActual, 200, 210);
+                                    doc.text("Usuario a Cargo:", 50, 240);
+                                    doc.text(usuario, 200, 240);
+
+                                    // Separador de Libro
+                                    doc.line(50, 260, 370, 260);
+
+                                    doc.text("Libro Asociado:", 50, 290);
+                                    doc.setFont("helvetica", "bold");
+
+                                    // Dividir el título del libro si es muy largo
+                                    const splitLibro = doc.splitTextToSize(libro, 170);
+                                    doc.text(splitLibro, 200, 290);
+
+                                    doc.setFont("helvetica", "normal");
+
+                                    // LÓGICA DE MOSTRAR MONTO O DEVOLUCIÓN NORMAL
+                                    doc.text("Concepto:", 50, 340);
+                                    if (montoMulta > 0) {
+                                        doc.text("Pago de Multa por Retraso/Daño", 200, 340);
+
+                                        doc.text("Valor Pagado:", 50, 370);
+                                        doc.setFont("helvetica", "bold");
+                                        doc.text("$" + montoMulta + " COP", 200, 370);
+                                        doc.setFont("helvetica", "normal");
+
+                                        doc.text("Fecha de Pago:", 50, 400);
+                                        doc.text(fechaReferencia, 200, 400);
+                                    } else {
+                                        doc.text("Paz y Salvo - Devolución a tiempo", 200, 340);
+                                        doc.text("Fecha de Devolución:", 50, 370);
+                                        doc.text(fechaReferencia, 200, 370);
+                                    }
+
+                                    // Estado Financiero
+                                    doc.setFontSize(12);
+                                    doc.setTextColor(52, 199, 89); // Verde de éxito
+                                    doc.setFont("helvetica", "bold");
+                                    doc.text("ESTADO: PAGADO / SIN DEUDAS", 210, 440, null, null, "center");
+
+                                    // Pie de página
+                                    doc.setFontSize(9);
+                                    doc.setTextColor(150, 150, 150);
+                                    doc.setFont("helvetica", "normal");
+                                    doc.text("Este documento certifica electrónicamente que el usuario mencionado", 210, 480, null, null, "center");
+                                    doc.text("se encuentra a Paz y Salvo por concepto del material bibliográfico.", 210, 495, null, null, "center");
+
+                                    // Descargar el archivo
+                                    doc.save("Recibo_Pago_TX000" + id + ".pdf");
+                                }
+
+                                // Lógica de Exportación de tabla
+                                function exportarExcel() {
+                                    const table = document.getElementById("tablaPrestamos");
+                                    const wb = XLSX.utils.table_to_book(table, {sheet: "Prestamos"});
+                                    XLSX.writeFile(wb, "Reporte_Prestamos_Uniboyaca.xlsx");
+                                }
+
+                                function exportarPDF() {
+                                    const {jsPDF} = window.jspdf;
+                                    const doc = new jsPDF('p', 'pt', 'a4');
+                                    doc.setFontSize(18);
+                                    doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
+                                    doc.text("UNIBOYACA - REPORTE DE PRÉSTAMOS", 40, 40);
+                                    doc.autoTable({
+                                        html: '#tablaPrestamos',
+                                        startY: 60,
+                                        theme: 'grid',
+                                        headStyles: {fillColor: [255, 59, 48]},
+                                        styles: {fontSize: 9}
+                                    });
+                                    doc.save("Reporte_Prestamos.pdf");
+                                }
+
+                                // Función para obtener configuracion de alertas dinámicas
+                                function getSwalConfig() {
+                                    const isDark = document.body.classList.contains('dark-mode');
+                                    return {
+                                        background: isDark ? '#1c1c1e' : '#ffffff',
+                                        color: isDark ? '#f5f5f7' : '#121212',
+                                        confirmButtonColor: '#ff3b30',
+                                        cancelButtonColor: '#6c757d',
+                                        customClass: {popup: 'swal2-popup'} // Clase para bordes redondeados
+                                    };
+                                }
+
+                                function sancionar(idPrestamo, idUsuario) {
+                                    const config = getSwalConfig();
+                                    Swal.fire({
+                                        ...config,
+                                        title: 'Generar Sanción',
+                                        text: "Ingrese el monto de la multa (COP):",
+                                        input: 'number',
+                                        inputAttributes: {min: 0, step: 1000},
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Aplicar Multa',
+                                        cancelButtonText: 'Cancelar'
+                                    }).then((result) => {
+                                        if (result.isConfirmed && result.value) {
+                                            window.location.href = "MultaController?accion=crear&idP=" + idPrestamo + "&idU=" + idUsuario + "&monto=" + result.value;
+                                        }
+                                    });
+                                }
+
+                                function confirmarEliminar(idP) {
+                                    const config = getSwalConfig();
+                                    Swal.fire({
+                                        ...config,
+                                        title: '¿Eliminar registro?',
+                                        text: "Esta acción es permanente y no se puede deshacer.",
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Sí, eliminar',
+                                        cancelButtonText: 'Cancelar'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            window.location.href = "PrestamoController?accion=eliminar&idP=" + idP;
+                                        }
+                                    });
+                                }
+
+                                // Lógica de UI (Tema y Animaciones)
+                                const body = document.body;
+                                function applyTheme(isDark) {
+                                    if (isDark)
+                                        body.classList.add('dark-mode');
+                                    else
+                                        body.classList.remove('dark-mode');
+                                }
+
+                                if (localStorage.getItem('theme') === 'light')
+                                    applyTheme(false);
+                                else
+                                    applyTheme(true);
+
+                                document.addEventListener('click', function (e) {
+                                    const target = e.target.closest('#theme-toggle');
+                                    if (target) {
+                                        const isNowDark = !body.classList.contains('dark-mode');
+                                        localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+                                        applyTheme(isNowDark);
+                                    }
+                                });
+
+                                const observer = new IntersectionObserver((entries) => {
+                                    entries.forEach(entry => {
+                                        if (entry.isIntersecting)
+                                            entry.target.classList.add('active');
+                                    });
+                                }, {threshold: 0.1});
+                                document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
 
         <%-- ALERTAS DE SISTEMA (Manejadas por el Controller) --%>
@@ -574,21 +721,28 @@
             Swal.fire({...getSwalConfig(), title: 'Sanción Registrada', text: 'La multa se aplicó correctamente.', icon: 'warning'});
         </script>
         <% } %>
+
+        <%-- NINO: Mejora en el mensaje de pago para sugerir el recibo --%>
         <% if ("pago_ok".equals(request.getParameter("msj"))) { %>
         <script>
-            Swal.fire({...getSwalConfig(), title: '¡Pago Exitoso!', text: 'El usuario ya no tiene deudas en este préstamo.', icon: 'success'});
+            Swal.fire({
+                ...getSwalConfig(),
+                title: '¡Pago Exitoso!',
+                text: 'El usuario ya no tiene deudas. Puedes descargar el recibo de Paz y Salvo abriendo los detalles del préstamo (ícono del ojo).',
+                icon: 'success'
+            });
         </script>
         <% } %>
+
         <% if ("eliminado_ok".equals(request.getParameter("msj"))) { %>
         <script>
             Swal.fire({...getSwalConfig(), title: 'Eliminado', text: 'El registro ha sido borrado del sistema.', icon: 'success'});
         </script>
         <% } %>
 
-        <%-- NINO: Alerta agregada para atrapar si el backend te devuelve un error invisible --%>
-        <% if (request.getParameter("err") != null) { %>
+        <% if (request.getParameter("err") != null) {%>
         <script>
-            Swal.fire({...getSwalConfig(), title: 'Error en el Servidor', text: 'El sistema no pudo procesar la solicitud (Código: <%= request.getParameter("err") %>).', icon: 'error'});
+            Swal.fire({...getSwalConfig(), title: 'Error en el Servidor', text: 'El sistema no pudo procesar la solicitud (Código: <%= request.getParameter("err")%>).', icon: 'error'});
         </script>
         <% } %>
 

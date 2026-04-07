@@ -9,6 +9,8 @@ public interface LibroDAO {
     public List<Libro> listar();
     public boolean actualizar(Libro libro);
     public boolean eliminar(int id);
+    public Libro buscarPorId(int id);
+    
 
     // Metodos para cargar los Selects en el JSP
     public List<String[]> listarAutores();
