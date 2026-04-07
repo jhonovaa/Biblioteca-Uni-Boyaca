@@ -509,7 +509,6 @@
                                     <input type="file" name="fileImg" id="fileImg" class="form-control form-control-apple" accept="image/png, image/jpeg, image/jpg">
                                     <button type="button" class="btn-plus-apple" onclick="document.getElementById('fileImg').click();" title="Seleccionar imagen"><i class="bi bi-image"></i></button>
                                 </div>
-                                <%-- SE DESCOMENTÓ: Muestra la información de la imagen subida en el formulario de edición --%>
                                 <% if (libEdit.getUrlImg() != null && !libEdit.getUrlImg().isEmpty()) {%>
                                 <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill"></i> Imagen actual: <%= libEdit.getUrlImg()%></small>
                                 <% }%> 
@@ -544,12 +543,21 @@
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                             <h4 class="fw-bold m-0"><i class="bi bi-collection me-2" style="color: var(--brand-red);"></i>Catálogo de Libros</h4>
 
-                            <div class="d-flex gap-2">
-                                <button onclick="exportarExcel()" class="btn-export">
-                                    <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
+
+                                <%-- NUEVO: BARRA DE BÚSQUEDA ADAPTADA AL TEMA --%>
+                                <div class="input-group" style="max-width: 250px;">
+                                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="buscadorLibros" onkeyup="filtrarCatalogo()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar libro o autor..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                                </div>
+
+                                <button onclick="exportarExcel()" class="btn-export" title="Exportar a Excel">
+                                    <i class="bi bi-file-earmark-excel text-success"></i>
                                 </button>
-                                <button onclick="exportarPDF()" class="btn-export">
-                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i> PDF
+                                <button onclick="exportarPDF()" class="btn-export" title="Exportar a PDF">
+                                    <i class="bi bi-file-earmark-pdf text-danger"></i>
                                 </button>
                             </div>
                         </div>
@@ -571,7 +579,7 @@
                                     %>
                                     <tr><td colspan="4" class="text-center py-5 opacity-50">No hay libros registrados en el inventario.</td></tr>
                                     <%  } else {
-                                            for (Libro b : lista) {
+                                        for (Libro b : lista) {
                                     %>
                                     <tr>
                                         <td>
@@ -596,18 +604,17 @@
                                                 <% if (rol.equals("Docente")) {%>
                                                 <a href="libro.jsp?idEdit=<%= b.getIdLibro()%>" class="btn-action-primary text-decoration-none" title="Editar Libro"><i class="bi bi-pencil-square"></i></a>
                                                 <button onclick="confirmarEliminar(<%= b.getIdLibro()%>)" class="btn-action-danger text-decoration-none" title="Eliminar Libro"><i class="bi bi-trash3"></i></button>
-                                                <% } %>
+                                                    <% }%>
 
-                                                <%-- BOTÓN PARA VER DETALLES (MODAL) --%>
                                                 <button class="btn-export border-0" data-bs-toggle="modal" data-bs-target="#modalDetalle<%= b.getIdLibro()%>" title="Ver Info del Libro">
                                                     <i class="bi bi-eye" style="color: var(--brand-red);"></i>
                                                 </button>
 
                                                 <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
                                                 <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn btn-sm btn-outline-danger" title="Descargar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-                                                <% } else { %>
+                                                    <% } else { %>
                                                 <button class="btn btn-sm btn-outline-secondary disabled" title="Sin PDF disponible"><i class="bi bi-file-earmark-x"></i></button>
-                                                <% } %>
+                                                    <% } %>
                                             </div>
                                         </td>
                                     </tr>
@@ -625,7 +632,7 @@
              MODALES DE DETALLE DE LIBROS 
              ========================================== --%>
         <% if (lista != null) {
-            for (Libro b : lista) {%>
+                for (Libro b : lista) {%>
         <div class="modal fade" id="modalDetalle<%= b.getIdLibro()%>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content shadow-lg border-0">
@@ -636,22 +643,19 @@
                             </div>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        
+
                         <div class="row align-items-center">
-                            <%-- Columna para la imagen --%>
                             <div class="col-md-4 text-center mb-4 mb-md-0">
-                                <%-- SE CORRIGIÓ: Lógica actualizada para renderizar la portada desde el Servlet --%>
                                 <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
-                                    <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) { %>
-                                        <img src="LibroServlet?accion=verImagen&id=<%= b.getIdLibro() %>" class="book-cover-preview w-100 h-100" style="object-fit: cover;" alt="Portada de <%= b.getTitulo() %>">
+                                    <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) {%>
+                                    <img src="LibroServlet?accion=verImagen&id=<%= b.getIdLibro()%>" class="book-cover-preview w-100 h-100" style="object-fit: cover;" alt="Portada de <%= b.getTitulo()%>">
                                     <% } else { %>
-                                        <i class="bi bi-image text-muted fs-1 mb-2"></i>
-                                        <span class="small opacity-50">Portada no disponible</span>
-                                    <% } %>
+                                    <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                    <span class="small opacity-50">Portada no disponible</span>
+                                    <% }%>
                                 </div>
                             </div>
 
-                            <%-- Columna para la información --%>
                             <div class="col-md-8">
                                 <h3 class="fw-bold mb-1"><%= b.getTitulo()%></h3>
                                 <p class="small opacity-50 mb-4">ISBN: <%= b.getIsbn()%></p>
@@ -671,14 +675,14 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <p class="info-label mb-1">Stock Disponible</p>
-                                        <p class="fw-bold mb-0 <%= b.getDisponible() > 0 ? "text-success" : "text-danger" %>"><%= b.getDisponible()%> unidades</p>
+                                        <p class="fw-bold mb-0 <%= b.getDisponible() > 0 ? "text-success" : "text-danger"%>"><%= b.getDisponible()%> unidades</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <hr class="my-4" style="border-color: var(--border-color);">
-                        
+
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
                             <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
@@ -692,7 +696,7 @@
             </div>
         </div>
         <% }
-        } %>
+            } %>
 
 
         <%-- ==========================================
@@ -791,83 +795,98 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-            function exportarExcel() {
-                const table = document.getElementById("tablaLibros");
-                const wb = XLSX.utils.table_to_book(table, {sheet: "Catalogo_Libros"});
-                XLSX.writeFile(wb, "Reporte_Catalogo_Uniboyaca.xlsx");
-            }
+                                                    // --- NUEVO: FILTRAR TABLA CATÁLOGO ---
+                                                    function filtrarCatalogo() {
+                                                        let input = document.getElementById("buscadorLibros").value.toLowerCase();
+                                                        let filas = document.querySelectorAll("#tablaLibros tbody tr");
 
-            function exportarPDF() {
-                const {jsPDF} = window.jspdf;
-                const doc = new jsPDF('p', 'pt', 'a4');
-                doc.setFontSize(18);
-                doc.setTextColor(255, 59, 48);
-                doc.text("UNIBOYACA - CATALOGO DE LIBROS", 40, 40);
-                doc.autoTable({
-                    html: '#tablaLibros',
-                    startY: 60,
-                    theme: 'grid',
-                    headStyles: {fillColor: [255, 59, 48]},
-                    styles: {fontSize: 9}
-                });
-                doc.save("Reporte_Catalogo.pdf");
-            }
+                                                        filas.forEach(fila => {
+                                                            // Evitar ocultar el mensaje de "No hay libros"
+                                                            if (fila.cells.length === 1)
+                                                                return;
 
-            function getSwalConfig() {
-                const isDark = document.body.classList.contains('dark-mode');
-                return {
-                    background: isDark ? '#1c1c1e' : '#ffffff',
-                    color: isDark ? '#f5f5f7' : '#121212',
-                    confirmButtonColor: '#ff3b30',
-                    cancelButtonColor: '#6c757d',
-                    customClass: {popup: 'swal2-popup'}
-                };
-            }
+                                                            let textoFila = fila.innerText.toLowerCase();
+                                                            fila.style.display = textoFila.includes(input) ? "" : "none";
+                                                        });
+                                                    }
 
-            function confirmarEliminar(idLibro) {
-                Swal.fire({
-                    ...getSwalConfig(),
-                    title: '¿Eliminar este libro?',
-                    text: "Esta acción borrará el libro del catálogo de forma permanente.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = "libro.jsp?accion=eliminar&id=" + idLibro;
-                    }
-                });
-            }
+                                                    function exportarExcel() {
+                                                        const table = document.getElementById("tablaLibros");
+                                                        const wb = XLSX.utils.table_to_book(table, {sheet: "Catalogo_Libros"});
+                                                        XLSX.writeFile(wb, "Reporte_Catalogo_Uniboyaca.xlsx");
+                                                    }
 
-            const body = document.body;
-            function applyTheme(isDark) {
-                if (isDark)
-                    body.classList.add('dark-mode');
-                else
-                    body.classList.remove('dark-mode');
-            }
-            if (localStorage.getItem('theme') === 'light')
-                applyTheme(false);
-            else
-                applyTheme(true);
+                                                    function exportarPDF() {
+                                                        const {jsPDF} = window.jspdf;
+                                                        const doc = new jsPDF('p', 'pt', 'a4');
+                                                        doc.setFontSize(18);
+                                                        doc.setTextColor(255, 59, 48);
+                                                        doc.text("UNIBOYACA - CATALOGO DE LIBROS", 40, 40);
+                                                        doc.autoTable({
+                                                            html: '#tablaLibros',
+                                                            startY: 60,
+                                                            theme: 'grid',
+                                                            headStyles: {fillColor: [255, 59, 48]},
+                                                            styles: {fontSize: 9}
+                                                        });
+                                                        doc.save("Reporte_Catalogo.pdf");
+                                                    }
 
-            document.addEventListener('click', function (e) {
-                const target = e.target.closest('#theme-toggle');
-                if (target) {
-                    const isNowDark = !body.classList.contains('dark-mode');
-                    localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
-                    applyTheme(isNowDark);
-                }
-            });
+                                                    function getSwalConfig() {
+                                                        const isDark = document.body.classList.contains('dark-mode');
+                                                        return {
+                                                            background: isDark ? '#1c1c1e' : '#ffffff',
+                                                            color: isDark ? '#f5f5f7' : '#121212',
+                                                            confirmButtonColor: '#ff3b30',
+                                                            cancelButtonColor: '#6c757d',
+                                                            customClass: {popup: 'swal2-popup'}
+                                                        };
+                                                    }
 
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting)
-                        entry.target.classList.add('active');
-                });
-            }, {threshold: 0.1});
-            document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+                                                    function confirmarEliminar(idLibro) {
+                                                        Swal.fire({
+                                                            ...getSwalConfig(),
+                                                            title: '¿Eliminar este libro?',
+                                                            text: "Esta acción borrará el libro del catálogo de forma permanente.",
+                                                            icon: 'warning',
+                                                            showCancelButton: true,
+                                                            confirmButtonText: 'Sí, eliminar',
+                                                            cancelButtonText: 'Cancelar'
+                                                        }).then((result) => {
+                                                            if (result.isConfirmed) {
+                                                                window.location.href = "libro.jsp?accion=eliminar&id=" + idLibro;
+                                                            }
+                                                        });
+                                                    }
+
+                                                    const body = document.body;
+                                                    function applyTheme(isDark) {
+                                                        if (isDark)
+                                                            body.classList.add('dark-mode');
+                                                        else
+                                                            body.classList.remove('dark-mode');
+                                                    }
+                                                    if (localStorage.getItem('theme') === 'light')
+                                                        applyTheme(false);
+                                                    else
+                                                        applyTheme(true);
+
+                                                    document.addEventListener('click', function (e) {
+                                                        const target = e.target.closest('#theme-toggle');
+                                                        if (target) {
+                                                            const isNowDark = !body.classList.contains('dark-mode');
+                                                            localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+                                                            applyTheme(isNowDark);
+                                                        }
+                                                    });
+
+                                                    const observer = new IntersectionObserver((entries) => {
+                                                        entries.forEach(entry => {
+                                                            if (entry.isIntersecting)
+                                                                entry.target.classList.add('active');
+                                                        });
+                                                    }, {threshold: 0.1});
+                                                    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
 
         <% if ("eliminado".equals(request.getParameter("msj"))) { %>

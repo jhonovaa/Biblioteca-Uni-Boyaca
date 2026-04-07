@@ -80,7 +80,6 @@
             .modal {
                 z-index: 1060 !important;
             }
-
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -137,18 +136,24 @@
                 padding: 12px 15px;
                 transition: 0.3s;
             }
-
             .form-control-apple:focus {
                 border-color: var(--brand-red);
                 box-shadow: 0 0 0 0.25rem rgba(255, 59, 48, 0.25);
             }
-
             .dark-mode select.form-control-apple option {
                 background-color: #1c1c1e !important;
                 color: #f5f5f7 !important;
             }
 
-            /* --- BOTONES --- */
+            /* --- TEXTOS PLACEHOLDER PARA MODO OSCURO --- */
+            .dark-mode .form-control-apple::placeholder {
+                color: rgba(245, 245, 247, 0.4) !important;
+            }
+            .dark-mode .text-muted {
+                color: rgba(245, 245, 247, 0.5) !important;
+            }
+
+            /* --- BOTONES UNIFICADOS --- */
             .btn-apple-red {
                 background: var(--brand-red);
                 color: white;
@@ -187,6 +192,7 @@
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
             }
             .btn-action-primary:hover {
                 background: var(--brand-blue);
@@ -201,9 +207,25 @@
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
             }
             .btn-action-success:hover {
                 background: var(--accent-green);
+                color: white;
+            }
+
+            .btn-action-warning {
+                background: rgba(255, 159, 10, 0.1);
+                color: #ff9f0a;
+                border: none;
+                border-radius: 10px;
+                padding: 6px 12px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                transition: 0.2s;
+            }
+            .btn-action-warning:hover {
+                background: #ff9f0a;
                 color: white;
             }
 
@@ -215,6 +237,7 @@
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
             }
             .btn-action-danger:hover {
                 background: var(--brand-red);
@@ -270,14 +293,21 @@
 
                             <div class="mb-3">
                                 <label class="info-label">Libro a Solicitar</label>
-                                <select name="id_libro" class="form-select form-control-apple" required>
-                                    <option value="">Seleccione un libro...</option>
+                                <select name="id_libro" id="select_libro" class="form-select form-control-apple" required onchange="actualizarPortada()">
+                                    <option value="" data-hasimg="false">Seleccione un libro...</option>
                                     <%
                                         for (Libro l : lDao.listar()) {
+                                            boolean hasImg = (l.getUrlImg() != null && !l.getUrlImg().isEmpty());
                                     %>
-                                    <option value="<%= l.getIdLibro()%>"><%= l.getTitulo()%></option>
+                                    <option value="<%= l.getIdLibro()%>" data-hasimg="<%= hasImg%>"><%= l.getTitulo()%></option>
                                     <% } %>
                                 </select>
+                            </div>
+
+                            <%-- CONTENEDOR NUEVO: PREVISUALIZACIÓN DE PORTADA --%>
+                            <div id="preview-container" class="mb-3 text-center p-3 rounded-4 d-none" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 190px;">
+                                <div id="preview-wrapper" class="w-100 h-100 d-flex flex-column justify-content-center align-items-center">
+                                </div>
                             </div>
 
                             <div class="mb-4">
@@ -298,13 +328,16 @@
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                             <h4 class="fw-bold m-0"><i class="bi bi-journal-text me-2" style="color: var(--brand-red);"></i>Registros Actuales</h4>
 
-                            <div class="d-flex gap-2">
-                                <button onclick="exportarExcel()" class="btn-export">
-                                    <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
-                                </button>
-                                <button onclick="exportarPDF()" class="btn-export">
-                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i> PDF
-                                </button>
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
+                                <%-- BARRA DE BÚSQUEDA ADAPTATIVA --%>
+                                <div class="input-group" style="max-width: 250px;">
+                                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="buscadorPrestamos" onkeyup="filtrarPrestamos()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar libro o usuario..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                                </div>
+                                <button onclick="exportarExcel()" class="btn-export" title="Exportar a Excel"><i class="bi bi-file-earmark-excel text-success"></i></button>
+                                <button onclick="exportarPDF()" class="btn-export" title="Exportar a PDF"><i class="bi bi-file-earmark-pdf text-danger"></i></button>
                             </div>
                         </div>
 
@@ -346,15 +379,16 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
 
+                                                <%-- BOTONES DE ACCIÓN UNIFICADOS A ÍCONOS --%>
                                                 <% if (rol.equals("Docente") && p.getEstado().equals("Activo")) {%>
-                                                <a href="PrestamoController?accion=devolver&idP=<%= p.getIdPrestamo()%>" class="btn-action-primary text-decoration-none">Devolver</a>
+                                                <a href="PrestamoController?accion=devolver&idP=<%= p.getIdPrestamo()%>" class="btn-action-primary text-decoration-none" title="Devolver Libro"><i class="bi bi-arrow-return-left"></i></a>
 
                                                 <% if (pDao.tieneMultaPendiente(p.getIdPrestamo())) {%>
-                                                <a href="MultaController?accion=pagar&idP=<%= p.getIdPrestamo()%>" class="btn-action-success text-decoration-none">Saldar</a>
-                                                <% } else {%>
-                                                <button class="btn-action-danger" onclick="sancionar(<%= p.getIdPrestamo()%>, <%= p.getIdUsuario()%>)">Multar</button>
-                                                <% } %>
-                                                <% }%>
+                                                <a href="MultaController?accion=pagar&idP=<%= p.getIdPrestamo()%>" class="btn-action-success text-decoration-none" title="Saldar Multa"><i class="bi bi-cash-stack"></i></a>
+                                                    <% } else {%>
+                                                <button class="btn-action-warning" onclick="sancionar(<%= p.getIdPrestamo()%>, <%= p.getIdUsuario()%>)" title="Generar Multa"><i class="bi bi-exclamation-triangle"></i></button>
+                                                    <% } %>
+                                                    <% }%>
 
                                                 <button class="btn-export border-0" data-bs-toggle="modal" data-bs-target="#modalDetalle<%= p.getIdPrestamo()%>" title="Ver Detalles">
                                                     <i class="bi bi-eye" style="color: var(--brand-red);"></i>
@@ -409,7 +443,6 @@
                         // Validacion estricta para mostrar el recibo
                         boolean mostrarRecibo = p.getEstado().equals("Devuelto") && (montoMulta == 0 || multaPagada);
 
-                        // SE CORRIGIÓ: Agregado .toString() para evitar Type Mismatch
                         String fechaReferencia = (p.getFechaDevolucionReal() != null) ? p.getFechaDevolucionReal().toString() : "N/A";
         %>
         <div class="modal fade" id="modalDetalle<%= p.getIdPrestamo()%>" tabindex="-1" aria-hidden="true">
@@ -519,18 +552,47 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                // --- NUEVA LÓGICA: GENERACIÓN DE RECIBO EN PDF CORREGIDA ---
-                                // Se eliminaron los backticks (Template Literals) porque el servidor de Java
-                                // los confundía con sus propias variables EL de JSP.
+                                // --- NUEVA LÓGICA: FILTRAR TABLA PRÉSTAMOS ---
+                                function filtrarPrestamos() {
+                                    let input = document.getElementById("buscadorPrestamos").value.toLowerCase();
+                                    let filas = document.querySelectorAll("#tablaPrestamos tbody tr");
+
+                                    filas.forEach(fila => {
+                                        if (fila.cells.length === 1)
+                                            return; // Ignora fila de tabla vacía
+                                        let textoFila = fila.innerText.toLowerCase();
+                                        fila.style.display = textoFila.includes(input) ? "" : "none";
+                                    });
+                                }
+
+                                function actualizarPortada() {
+                                    const select = document.getElementById('select_libro');
+                                    const option = select.options[select.selectedIndex];
+                                    const container = document.getElementById('preview-container');
+                                    const wrapper = document.getElementById('preview-wrapper');
+
+                                    if (!option.value) {
+                                        container.classList.add('d-none');
+                                        return;
+                                    }
+
+                                    container.classList.remove('d-none');
+                                    const hasImg = option.getAttribute('data-hasimg') === 'true';
+
+                                    if (hasImg) {
+                                        wrapper.innerHTML = '<img src="LibroServlet?accion=verImagen&id=' + option.value + '" style="height: 180px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" alt="Portada">';
+                                    } else {
+                                        wrapper.innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100"><i class="bi bi-image text-muted fs-1 mb-2"></i><span class="small opacity-50">Sin Portada</span></div>';
+                                    }
+                                }
+
                                 function generarRecibo(id, usuario, libro, montoMulta, fechaReferencia) {
                                     const {jsPDF} = window.jspdf;
                                     const doc = new jsPDF('p', 'pt', 'a5'); // Formato A5 para recibos
 
-                                    // Fondo y bordes
                                     doc.setDrawColor(200, 200, 200);
                                     doc.roundedRect(20, 20, 380, 500, 10, 10);
 
-                                    // Encabezado
                                     doc.setFontSize(18);
                                     doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
                                     doc.text("UNIBOYACA - BIBLIOTECA", 210, 60, null, null, "center");
@@ -541,13 +603,11 @@
 
                                     doc.line(40, 100, 380, 100);
 
-                                    // Título del Documento
                                     doc.setFontSize(14);
                                     doc.setTextColor(0, 0, 0);
                                     doc.setFont("helvetica", "bold");
                                     doc.text("CERTIFICADO DE PAZ Y SALVO / RECIBO", 210, 130, null, null, "center");
 
-                                    // Datos de la Transacción
                                     doc.setFontSize(11);
                                     doc.setFont("helvetica", "normal");
 
@@ -561,28 +621,23 @@
                                     doc.text("Usuario a Cargo:", 50, 240);
                                     doc.text(usuario, 200, 240);
 
-                                    // Separador de Libro
                                     doc.line(50, 260, 370, 260);
 
                                     doc.text("Libro Asociado:", 50, 290);
                                     doc.setFont("helvetica", "bold");
 
-                                    // Dividir el título del libro si es muy largo
                                     const splitLibro = doc.splitTextToSize(libro, 170);
                                     doc.text(splitLibro, 200, 290);
 
                                     doc.setFont("helvetica", "normal");
 
-                                    // LÓGICA DE MOSTRAR MONTO O DEVOLUCIÓN NORMAL
                                     doc.text("Concepto:", 50, 340);
                                     if (montoMulta > 0) {
                                         doc.text("Pago de Multa por Retraso/Daño", 200, 340);
-
                                         doc.text("Valor Pagado:", 50, 370);
                                         doc.setFont("helvetica", "bold");
                                         doc.text("$" + montoMulta + " COP", 200, 370);
                                         doc.setFont("helvetica", "normal");
-
                                         doc.text("Fecha de Pago:", 50, 400);
                                         doc.text(fechaReferencia, 200, 400);
                                     } else {
@@ -591,24 +646,20 @@
                                         doc.text(fechaReferencia, 200, 370);
                                     }
 
-                                    // Estado Financiero
                                     doc.setFontSize(12);
-                                    doc.setTextColor(52, 199, 89); // Verde de éxito
+                                    doc.setTextColor(52, 199, 89);
                                     doc.setFont("helvetica", "bold");
                                     doc.text("ESTADO: PAGADO / SIN DEUDAS", 210, 440, null, null, "center");
 
-                                    // Pie de página
                                     doc.setFontSize(9);
                                     doc.setTextColor(150, 150, 150);
                                     doc.setFont("helvetica", "normal");
                                     doc.text("Este documento certifica electrónicamente que el usuario mencionado", 210, 480, null, null, "center");
                                     doc.text("se encuentra a Paz y Salvo por concepto del material bibliográfico.", 210, 495, null, null, "center");
 
-                                    // Descargar el archivo
                                     doc.save("Recibo_Pago_TX000" + id + ".pdf");
                                 }
 
-                                // Lógica de Exportación de tabla
                                 function exportarExcel() {
                                     const table = document.getElementById("tablaPrestamos");
                                     const wb = XLSX.utils.table_to_book(table, {sheet: "Prestamos"});
@@ -619,7 +670,7 @@
                                     const {jsPDF} = window.jspdf;
                                     const doc = new jsPDF('p', 'pt', 'a4');
                                     doc.setFontSize(18);
-                                    doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
+                                    doc.setTextColor(255, 59, 48);
                                     doc.text("UNIBOYACA - REPORTE DE PRÉSTAMOS", 40, 40);
                                     doc.autoTable({
                                         html: '#tablaPrestamos',
@@ -631,7 +682,6 @@
                                     doc.save("Reporte_Prestamos.pdf");
                                 }
 
-                                // Función para obtener configuracion de alertas dinámicas
                                 function getSwalConfig() {
                                     const isDark = document.body.classList.contains('dark-mode');
                                     return {
@@ -639,7 +689,7 @@
                                         color: isDark ? '#f5f5f7' : '#121212',
                                         confirmButtonColor: '#ff3b30',
                                         cancelButtonColor: '#6c757d',
-                                        customClass: {popup: 'swal2-popup'} // Clase para bordes redondeados
+                                        customClass: {popup: 'swal2-popup'}
                                     };
                                 }
 
@@ -678,7 +728,6 @@
                                     });
                                 }
 
-                                // Lógica de UI (Tema y Animaciones)
                                 const body = document.body;
                                 function applyTheme(isDark) {
                                     if (isDark)
@@ -710,7 +759,6 @@
                                 document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
 
-        <%-- ALERTAS DE SISTEMA (Manejadas por el Controller) --%>
         <% if ("devuelto_ok".equals(request.getParameter("msj"))) { %>
         <script>
             Swal.fire({...getSwalConfig(), title: '¡Devuelto!', text: 'El libro ha sido recibido.', icon: 'success'});
@@ -722,7 +770,6 @@
         </script>
         <% } %>
 
-        <%-- NINO: Mejora en el mensaje de pago para sugerir el recibo --%>
         <% if ("pago_ok".equals(request.getParameter("msj"))) { %>
         <script>
             Swal.fire({
@@ -746,7 +793,6 @@
         </script>
         <% } %>
 
-        <%-- ALERTA PARA ESTUDIANTES POR MULTAS PENDIENTES --%>
         <% if (rol.equals("Estudiante")) {
                 String msgMulta = pDao.obtenerNotificacionMulta(idUsuarioLogueado);
                 if (msgMulta != null) {%>

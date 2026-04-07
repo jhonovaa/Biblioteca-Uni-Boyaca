@@ -22,6 +22,21 @@
     } else {
         listaQuejas = dao.listarQuejasPorCorreo(emailUser);
     }
+    
+    // --- NUEVO: Cálculo de Estadísticas Dinámicas ---
+    int totalPqrs = 0;
+    int pendientesPqrs = 0;
+    int respondidasPqrs = 0;
+    if(listaQuejas != null) {
+        totalPqrs = listaQuejas.size();
+        for(Queja q : listaQuejas) {
+            if("Pendiente".equals(q.getEstado())) {
+                pendientesPqrs++;
+            } else {
+                respondidasPqrs++;
+            }
+        }
+    }
 %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -44,6 +59,7 @@
                 --brand-red: #ff3b30;
                 --brand-red-hover: #d72c21;
                 --accent-green: #34c759;
+                --brand-blue: #007aff;
                 --soft-gray: rgba(125, 125, 125, 0.08);
             }
 
@@ -51,7 +67,7 @@
                 --apple-bg: #000000;
                 --card-bg: #1c1c1e;
                 --text-main: #f5f5f7;
-                --border-color: rgba(255,255,255,0.25); /* Bordes visibles en negro */
+                --border-color: rgba(255,255,255,0.25);
                 --soft-gray: rgba(255, 255, 255, 0.05);
             }
 
@@ -63,14 +79,8 @@
                 min-height: 100vh;
             }
 
-            /* --- PARCHE MODAL --- */
-            .modal-backdrop {
-                z-index: 1040 !important;
-            }
-            .modal {
-                z-index: 1060 !important;
-            }
-
+            .modal-backdrop { z-index: 1040 !important; }
+            .modal { z-index: 1060 !important; }
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -108,7 +118,6 @@
                 border-radius: 22px;
                 padding: 22px;
                 border: 1px solid rgba(52, 199, 89, 0.2);
-                position: relative;
             }
 
             .official-seal {
@@ -121,100 +130,60 @@
                 font-size: 0.9rem;
             }
 
-            /* --- TABLAS VISIBLES EN MODO OSCURO --- */
-            .table-custom {
-                width: 100%;
-                border-collapse: separate;
-                border-spacing: 0;
-                color: var(--text-main) !important;
-            }
-            .table-custom th {
-                border-bottom: 2px solid var(--border-color) !important;
-                padding: 15px;
-                background: transparent !important;
-                color: var(--text-main) !important;
-                font-weight: 600;
-                opacity: 0.8;
-            }
-            .table-custom td {
-                border-bottom: 1px solid var(--border-color) !important;
-                padding: 15px;
-                background: transparent !important;
-                color: var(--text-main) !important;
-                vertical-align: middle;
-            }
+            .table-custom { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--text-main) !important; }
+            .table-custom th { border-bottom: 2px solid var(--border-color) !important; padding: 15px; background: transparent !important; color: var(--text-main) !important; font-weight: 600; opacity: 0.8; }
+            .table-custom td { border-bottom: 1px solid var(--border-color) !important; padding: 15px; background: transparent !important; color: var(--text-main) !important; vertical-align: middle; }
 
-            .form-control-apple {
+            /* --- CORRECCIÓN DESPLEGABLES --- */
+            .form-control-apple, .form-select.form-control-apple {
                 background-color: var(--soft-gray) !important;
                 color: var(--text-main) !important;
                 border: 1px solid var(--border-color);
                 border-radius: 16px;
                 padding: 12px 15px;
+                transition: 0.3s;
+            }
+            .form-control-apple:focus, .form-select.form-control-apple:focus {
+                border-color: var(--brand-red);
+                box-shadow: 0 0 0 0.25rem rgba(255, 59, 48, 0.25);
+            }
+            .dark-mode select.form-control-apple option {
+                background-color: #1c1c1e !important;
+                color: #f5f5f7 !important;
+            }
+            /* Flecha select en dark mode */
+            .dark-mode .form-select.form-control-apple {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f5f5f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
             }
 
-            .btn-apple-red {
-                background: var(--brand-red);
-                color: white;
-                border: none;
-                border-radius: 16px;
-                padding: 14px 25px;
-                font-weight: 600;
-                transition: 0.2s;
-            }
+            /* --- BOTONES --- */
+            .btn-apple-red { background: var(--brand-red); color: white; border: none; border-radius: 16px; padding: 14px 25px; font-weight: 600; transition: 0.2s; }
+            .btn-apple-red:hover { background: var(--brand-red-hover); color: white; transform: translateY(-1px); }
+            
+            .btn-action-primary { background: rgba(0, 122, 255, 0.1); color: var(--brand-blue); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+            .btn-action-primary:hover { background: var(--brand-blue); color: white; }
+            
+            .btn-action-warning { background: rgba(255, 159, 10, 0.1); color: #ff9f0a; border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+            .btn-action-warning:hover { background: #ff9f0a; color: white; }
+            
+            .btn-view-ans { background: rgba(52, 199, 89, 0.1); color: var(--accent-green); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 0.85rem; transition: 0.2s; }
+            .btn-view-ans:hover { background: var(--accent-green); color: white; }
 
-            .btn-action-primary {
-                background: rgba(0, 122, 255, 0.1);
-                color: #007aff;
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
+            .reveal { opacity: 0; transform: translateY(20px); transition: 0.5s ease; }
+            .reveal.active { opacity: 1; transform: translateY(0); }
+            
+            /* Tarjetas de Estadísticas */
+            .stat-card {
+                border-radius: 20px;
+                padding: 1.5rem;
+                border: 1px solid var(--border-color);
+                background: var(--soft-gray);
+                display: flex;
+                align-items: center;
+                gap: 15px;
             }
-            .btn-action-primary:hover {
-                background: #007aff;
-                color: white;
-            }
-
-            .btn-action-warning {
-                background: rgba(255, 159, 10, 0.1);
-                color: #ff9f0a;
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-action-warning:hover {
-                background: #ff9f0a;
-                color: white;
-            }
-
-            .btn-view-ans {
-                background: rgba(52, 199, 89, 0.1);
-                color: var(--accent-green);
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 700;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-view-ans:hover {
-                background: var(--accent-green);
-                color: white;
-            }
-
-            .reveal {
-                opacity: 0;
-                transform: translateY(20px);
-                transition: 0.5s ease;
-            }
-            .reveal.active {
-                opacity: 1;
-                transform: translateY(0);
+            .stat-icon {
+                width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
             }
         </style>
     </head>
@@ -230,27 +199,75 @@
             </header>
 
             <% if (request.getAttribute("mensaje") != null) {%>
-            <div class="alert alert-success border-0 rounded-4 text-center mb-4">
+            <div class="alert alert-success border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green); font-weight: 600;">
                 <i class="bi bi-check-circle-fill me-2"></i> <%= request.getAttribute("mensaje")%>
             </div>
             <% } %>
 
+            <%-- NUEVO: DASHBOARD DE ESTADÍSTICAS --%>
+            <div class="row g-3 mb-5 reveal active">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 122, 255, 0.1); color: var(--brand-blue);"><i class="bi bi-inboxes-fill"></i></div>
+                        <div>
+                            <p class="info-label mb-0">Total Radicados</p>
+                            <h3 class="fw-bold mb-0"><%= totalPqrs %></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(255, 159, 10, 0.1); color: #ff9f0a;"><i class="bi bi-hourglass-split"></i></div>
+                        <div>
+                            <p class="info-label mb-0">En Trámite (Pendientes)</p>
+                            <h3 class="fw-bold mb-0"><%= pendientesPqrs %></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green);"><i class="bi bi-check-all"></i></div>
+                        <div>
+                            <p class="info-label mb-0">Resueltas / Respondidas</p>
+                            <h3 class="fw-bold mb-0"><%= respondidasPqrs %></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <% if ("Docente".equals(rol)) { %>
             <div class="glass-panel reveal active">
-                <h4 class="fw-bold mb-4"><i class="bi bi-shield-lock-fill me-2" style="color: var(--brand-red);"></i>Panel de Gestión</h4>
+                
+                <%-- NUEVO: BARRA DE BÚSQUEDA Y FILTROS --%>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                    <h4 class="fw-bold m-0"><i class="bi bi-shield-lock-fill me-2" style="color: var(--brand-red);"></i>Panel de Gestión</h4>
+                    <div class="d-flex gap-2 w-100 justify-content-md-end">
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="buscadorPQRS" onkeyup="filtrarTabla()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar asunto o usuario..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                        </div>
+                        <button class="btn btn-light rounded-pill fw-bold border" onclick="filtrarEstado('Todas')">Todas</button>
+                        <button class="btn btn-warning rounded-pill fw-bold" onclick="filtrarEstado('Pendiente')">Pendientes</button>
+                    </div>
+                </div>
+
                 <div class="table-responsive">
-                    <table class="table table-custom align-middle">
+                    <table class="table table-custom align-middle" id="tablaPQRS">
                         <thead>
-                            <tr><th>Solicitante</th><th>Asunto</th><th>Estado</th><th class="text-center">Acción</th></tr>
+                            <tr><th>Solicitante</th><th>Tipo</th><th>Asunto</th><th>Estado</th><th class="text-center">Acción</th></tr>
                         </thead>
                         <tbody>
-                            <% if (listaQuejas != null) {
+                            <% if (listaQuejas != null && !listaQuejas.isEmpty()) {
                                     for (Queja q : listaQuejas) {%>
                             <tr>
-                                <td class="fw-medium"><%= q.getNombreSolicitante()%></td>
-                                <td><%= q.getAsunto()%></td>
                                 <td>
-                                    <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-warning text-dark" : "bg-success text-white"%> px-3">
+                                    <div class="fw-bold"><%= q.getNombreSolicitante()%></div>
+                                    <div class="small opacity-50"><%= q.getCorreoSolicitante()%></div>
+                                </td>
+                                <td><span class="badge border border-secondary text-secondary bg-transparent"><%= q.getTipoSolicitud() %></span></td>
+                                <td class="fw-medium"><%= q.getAsunto()%></td>
+                                <td>
+                                    <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-warning text-dark" : "bg-success text-white"%> px-3 col-estado">
                                         <%= q.getEstado()%>
                                     </span>
                                 </td>
@@ -269,7 +286,9 @@
                                 </td>
                             </tr>
                             <% }
-                                } %>
+                                } else { %>
+                                <tr><td colspan="5" class="text-center py-5 opacity-50">Buzón vacío. No hay PQRS registradas.</td></tr>
+                            <% } %>
                         </tbody>
                     </table>
                 </div>
@@ -278,62 +297,74 @@
             <% } else {%>
             <div class="row g-4">
                 <div class="col-lg-5">
-                    <div class="glass-panel reveal active">
+                    <div class="glass-panel reveal active h-100">
                         <h4 class="fw-bold mb-4" style="color: var(--brand-red);"><i class="bi bi-plus-circle-fill me-2"></i>Nueva Radicación</h4>
                         <form action="ProcesarQuejaServlet" method="POST">
                             <input type="hidden" name="accion" value="radicar">
                             <input type="hidden" name="nombreSolicitante" value="<%= nombreUser%>">
+                            
                             <div class="mb-3">
-                                <label class="info-label">Categoría</label>
+                                <label class="info-label">Categoría del requerimiento</label>
                                 <select name="tipoSolicitud" class="form-select form-control-apple">
-                                    <option value="Queja">Queja</option>
-                                    <option value="Sugerencia">Sugerencia</option>
-                                    <option value="Peticion">Petición</option>
+                                    <option value="Queja">Queja (Inconformidad con el servicio)</option>
+                                    <option value="Reclamo">Reclamo (Problema directo con un proceso)</option>
+                                    <option value="Sugerencia">Sugerencia (Propuesta de mejora)</option>
+                                    <option value="Peticion">Petición (Solicitud de información o material)</option>
+                                    <option value="Felicitacion">Felicitación</option>
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="info-label">Correo alternativo</label>
+                                <label class="info-label">Correo de notificaciones</label>
                                 <input type="email" name="correoSolicitante" class="form-control form-control-apple" value="<%= emailUser%>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="info-label">Asunto Principal</label>
-                                <input type="text" name="asunto" class="form-control form-control-apple" required>
+                                <input type="text" name="asunto" class="form-control form-control-apple" placeholder="Ej: Problema con reserva de cubículo" required>
                             </div>
                             <div class="mb-3">
-                                <label class="info-label">Detalle del problema</label>
-                                <textarea name="descripcion" class="form-control form-control-apple" rows="4" required></textarea>
+                                <label class="info-label">Detalle completo de la solicitud</label>
+                                <textarea name="descripcion" class="form-control form-control-apple" rows="4" placeholder="Explique detalladamente su situación..." required></textarea>
                             </div>
-                            <button type="submit" class="btn-apple-red w-100 shadow mt-2">Enviar a Biblioteca</button>
+                            <button type="submit" class="btn-apple-red w-100 shadow mt-2"><i class="bi bi-send-fill me-2"></i>Radicar a Biblioteca</button>
                         </form>
                     </div>
                 </div>
 
                 <div class="col-lg-7">
-                    <div class="glass-panel reveal active">
-                        <h4 class="fw-bold mb-4"><i class="bi bi-chat-right-dots-fill me-2"></i>Mis Solicitudes</h4>
+                    <div class="glass-panel reveal active h-100">
+                        
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                            <h4 class="fw-bold m-0"><i class="bi bi-chat-right-dots-fill me-2"></i>Mis Solicitudes</h4>
+                            <div class="input-group" style="max-width: 250px;">
+                                <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="buscadorPQRS" onkeyup="filtrarTabla()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar radicado..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                            </div>
+                        </div>
+                        
                         <div class="table-responsive">
-                            <table class="table table-custom align-middle">
-                                <thead><tr><th>Asunto</th><th>Estado</th><th class="text-center">Gestión</th></tr></thead>
+                            <table class="table table-custom align-middle" id="tablaPQRS">
+                                <thead><tr><th>Radicado</th><th>Asunto</th><th>Estado</th><th class="text-center">Gestión</th></tr></thead>
                                 <tbody>
                                     <% if (listaQuejas != null && !listaQuejas.isEmpty()) {
                                             for (Queja q : listaQuejas) {%>
                                     <tr>
+                                        <td><span class="fw-bold">#<%= q.getId() %></span><br><span class="small opacity-50"><%= q.getTipoSolicitud() %></span></td>
                                         <td class="fw-medium small"><%= q.getAsunto()%></td>
                                         <td>
-                                            <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-secondary" : "bg-success text-white"%> px-3">
+                                            <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-secondary" : "bg-success text-white"%> px-3 col-estado">
                                                 <%= q.getEstado()%>
                                             </span>
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
                                                 <% if ("Pendiente".equals(q.getEstado())) {%>
-                                                <button type="button" class="btn btn-action-warning px-3" data-bs-toggle="modal" data-bs-target="#modalEditEst<%= q.getId()%>">
-                                                    <i class="bi bi-pencil-square me-1"></i> Editar
+                                                <button type="button" class="btn btn-action-warning px-3" data-bs-toggle="modal" data-bs-target="#modalEditEst<%= q.getId()%>" title="Modificar texto">
+                                                    <i class="bi bi-pencil-square"></i>
                                                 </button>
                                                 <% } %>
                                                 <% if ("Respondida".equals(q.getEstado())) {%>
-                                                <button type="button" class="btn-view-ans px-3" data-bs-toggle="modal" data-bs-target="#modalVer<%= q.getId()%>">
-                                                    <i class="bi bi-envelope-open-fill me-1"></i> Leer
+                                                <button type="button" class="btn-view-ans px-3" data-bs-toggle="modal" data-bs-target="#modalVer<%= q.getId()%>" title="Leer Respuesta">
+                                                    <i class="bi bi-envelope-open-fill"></i>
                                                 </button>
                                                 <% } else if (!"Pendiente".equals(q.getEstado())) { %>
                                                 <span class="opacity-25 small italic">En trámite...</span>
@@ -343,7 +374,7 @@
                                     </tr>
                                     <% }
                                     } else { %>
-                                    <tr><td colspan="3" class="text-center py-5 opacity-50">No hay solicitudes registradas.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-5 opacity-50">No tienes solicitudes registradas.</td></tr>
                                     <% } %>
                                 </tbody>
                             </table>
@@ -435,7 +466,7 @@
                             </div>
                             <div class="d-flex gap-3">
                                 <button type="button" class="btn btn-light rounded-pill px-4 w-100 fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn-apple-red w-100 shadow">Emitir Respuesta</button>
+                                <button type="submit" class="btn-apple-red w-100 shadow"><i class="bi bi-send-check me-2"></i>Emitir Respuesta</button>
                             </div>
                         </form>
                     </div>
@@ -546,6 +577,39 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
+            // --- NUEVA LÓGICA: FILTROS Y BÚSQUEDA ---
+            function filtrarTabla() {
+                let input = document.getElementById("buscadorPQRS").value.toLowerCase();
+                let filas = document.querySelectorAll("#tablaPQRS tbody tr");
+                
+                filas.forEach(fila => {
+                    // Evitar ocultar el mensaje de "No hay PQRS"
+                    if(fila.cells.length === 1) return;
+                    
+                    let texto = fila.innerText.toLowerCase();
+                    fila.style.display = texto.includes(input) ? "" : "none";
+                });
+            }
+
+            function filtrarEstado(estadoBuscar) {
+                let filas = document.querySelectorAll("#tablaPQRS tbody tr");
+                
+                filas.forEach(fila => {
+                    if(fila.cells.length === 1) return;
+                    
+                    let spanEstado = fila.querySelector(".col-estado");
+                    if(spanEstado) {
+                        let estadoActual = spanEstado.innerText.trim();
+                        if(estadoBuscar === 'Todas' || estadoActual === estadoBuscar) {
+                            fila.style.display = "";
+                        } else {
+                            fila.style.display = "none";
+                        }
+                    }
+                });
+            }
+
+            // Lógica de tema oscuro
             const body = document.body;
             function applyTheme(isDark) {
                 if (isDark)
@@ -567,6 +631,7 @@
                 }
             });
 
+            // Animaciones
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting)
