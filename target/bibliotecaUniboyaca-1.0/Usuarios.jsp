@@ -69,6 +69,22 @@
             request.setAttribute("error", "Error: " + e.getMessage());
         }
     }
+
+    List<Usuarios> listaUsuarios = dao.listar();
+    int totalUsuarios = 0;
+    int usuariosActivos = 0;
+    int usuariosProblema = 0;
+
+    if (listaUsuarios != null) {
+        totalUsuarios = listaUsuarios.size();
+        for (Usuarios user : listaUsuarios) {
+            if ("Activo".equals(user.getEstado())) {
+                usuariosActivos++;
+            } else {
+                usuariosProblema++;
+            }
+        }
+    }
 %>
 
 <!DOCTYPE html>
@@ -113,7 +129,7 @@
                 --border-color: rgba(255,255,255,0.1);
                 --soft-gray: rgba(255, 255, 255, 0.05);
 
-                /* Variables para el boton de editar en oscuro */
+
                 --btn-edit-bg: rgba(255, 255, 255, 0.1);
                 --btn-edit-text: #ffffff;
                 --btn-edit-hover-bg: rgba(255, 255, 255, 0.2);
@@ -166,7 +182,7 @@
                 vertical-align: middle;
             }
 
-            .form-control-apple {
+            .form-control-apple, .form-select.form-control-apple {
                 background-color: var(--soft-gray) !important;
                 color: var(--text-main) !important;
                 border: 1px solid var(--border-color);
@@ -175,7 +191,7 @@
                 transition: 0.3s;
             }
 
-            .form-control-apple:focus {
+            .form-control-apple:focus, .form-select.form-control-apple:focus {
                 border-color: var(--brand-red);
                 box-shadow: 0 0 0 0.25rem rgba(255, 59, 48, 0.25);
             }
@@ -356,6 +372,29 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+
+            .stat-card {
+                border-radius: 20px;
+                padding: 1.5rem;
+                border: 1px solid var(--border-color);
+                background: var(--glass-bg, var(--card-bg));
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                transition: transform 0.3s;
+            }
+            .stat-card:hover {
+                transform: translateY(-5px);
+            }
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+            }
         </style>
     </head>
     <body class="dark-mode">
@@ -367,6 +406,37 @@
                 <h1 class="display-5 fw-bold">Gestión de Usuarios</h1>
                 <p class="opacity-50 fs-5" style="color: var(--brand-red);">Administración de cuentas, roles y accesos</p>
             </header>
+
+
+            <div class="row g-3 mb-5 reveal active">
+                <div class="col-md-4">
+                    <div class="stat-card shadow-sm">
+                        <div class="stat-icon" style="background: rgba(0, 122, 255, 0.1); color: var(--brand-blue);"><i class="bi bi-people-fill"></i></div>
+                        <div>
+                            <p class="info-label mb-0">Total Usuarios</p>
+                            <h3 class="fw-bold mb-0"><%= totalUsuarios%></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card shadow-sm">
+                        <div class="stat-icon" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green);"><i class="bi bi-person-check-fill"></i></div>
+                        <div>
+                            <p class="info-label mb-0">Usuarios Activos</p>
+                            <h3 class="fw-bold mb-0"><%= usuariosActivos%></h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card shadow-sm">
+                        <div class="stat-icon" style="background: rgba(255, 59, 48, 0.1); color: var(--brand-red);"><i class="bi bi-person-dash-fill"></i></div>
+                        <div>
+                            <p class="info-label mb-0">Inactivos / Sancionados</p>
+                            <h3 class="fw-bold mb-0"><%= usuariosProblema%></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="row g-4">
 
@@ -445,14 +515,23 @@
                 <div class="col-lg-8">
                     <div class="glass-panel reveal active delay-1 h-100">
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
-                            <h4 class="fw-bold m-0"><i class="bi bi-people-fill me-2" style="color: var(--brand-red);"></i>Directorio de Usuarios</h4>
+                            <h4 class="fw-bold m-0"><i class="bi bi-people-fill me-2" style="color: var(--brand-red);"></i>Directorio</h4>
 
-                            <div class="d-flex gap-2">
-                                <button onclick="exportarExcel()" class="btn-export">
-                                    <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
+
+
+                                <div class="input-group" style="max-width: 250px;">
+                                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="buscadorUsuarios" onkeyup="filtrarUsuarios()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar usuario..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                                </div>
+
+                                <button onclick="exportarExcel()" class="btn-export" title="Exportar Excel">
+                                    <i class="bi bi-file-earmark-excel text-success"></i>
                                 </button>
-                                <button onclick="exportarPDF()" class="btn-export">
-                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i> PDF
+                                <button onclick="exportarPDF()" class="btn-export" title="Exportar PDF">
+                                    <i class="bi bi-file-earmark-pdf text-danger"></i>
                                 </button>
                             </div>
                         </div>
@@ -470,8 +549,7 @@
                                 </thead>
                                 <tbody>
                                     <%
-                                        List<Usuarios> lista = dao.listar();
-                                        if (lista == null || lista.isEmpty()) {
+                                        if (listaUsuarios == null || listaUsuarios.isEmpty()) {
                                     %>
                                     <tr>
                                         <td colspan="5" class="text-center py-5 opacity-50">
@@ -480,7 +558,7 @@
                                     </tr>
                                     <%
                                     } else {
-                                        for (Usuarios u : lista) {
+                                        for (Usuarios u : listaUsuarios) {
                                             String nombreComp = (u.getNombres() != null ? u.getNombres() : "") + " "
                                                     + (u.getApellidos() != null ? u.getApellidos() : "");
                                             if (nombreComp.trim().isEmpty())
@@ -505,8 +583,8 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
-                                                <a href="Usuarios.jsp?accion=editar&id=<%= u.getIdUsuario()%>" class="btn-action-primary text-decoration-none" title="Editar"><i class="bi bi-pencil-square"></i> Editar</a>
-                                                <button onclick="confirmarEliminar(<%= u.getIdUsuario()%>)" class="btn-action-danger text-decoration-none" title="Eliminar"><i class="bi bi-trash3"></i> Borrar</button>
+                                                <a href="Usuarios.jsp?accion=editar&id=<%= u.getIdUsuario()%>" class="btn-action-primary text-decoration-none" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                                <button onclick="confirmarEliminar(<%= u.getIdUsuario()%>)" class="btn-action-danger text-decoration-none" title="Eliminar"><i class="bi bi-trash3"></i></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -526,6 +604,21 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
+
+                                                    function filtrarUsuarios() {
+                                                        let input = document.getElementById("buscadorUsuarios").value.toLowerCase();
+                                                        let filas = document.querySelectorAll("#tablaUsuarios tbody tr");
+
+                                                        filas.forEach(fila => {
+
+                                                            if (fila.cells.length === 1)
+                                                                return;
+
+                                                            let textoFila = fila.innerText.toLowerCase();
+                                                            fila.style.display = textoFila.includes(input) ? "" : "none";
+                                                        });
+                                                    }
+
                                                     function exportarExcel() {
                                                         const table = document.getElementById("tablaUsuarios");
                                                         const wb = XLSX.utils.table_to_book(table, {sheet: "Usuarios"});

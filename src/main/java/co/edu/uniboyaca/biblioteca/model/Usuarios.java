@@ -10,12 +10,11 @@ public class Usuarios {
     private String telefono;
     private String tipoUsuario;
     private String estado;
-    private String password; // Nuevo atributo para la contraseña
+    private String password;
 
     public Usuarios() {
     }
 
-    // Getters y Setters
     public int getIdUsuario() {
         return idUsuario;
     }

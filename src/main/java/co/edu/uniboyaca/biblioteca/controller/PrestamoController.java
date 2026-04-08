@@ -13,9 +13,8 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet(name = "PrestamoController", urlPatterns = {"/PrestamoController"})
 public class PrestamoController extends HttpServlet {
 
-    /**
-     * El metodo doGet gestiona acciones por URL: Devolucion y Eliminacion
-     */
+
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -48,9 +47,7 @@ public class PrestamoController extends HttpServlet {
         }
     }
 
-    /**
-     * El metodo doPost gestiona el formulario de nuevas solicitudes
-     */
+     
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
