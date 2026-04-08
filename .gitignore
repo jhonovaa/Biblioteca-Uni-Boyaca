@@ -1,17 +1,3 @@
-
 target/
-
 *.class
 *.war
-*.ear
-*.jar
-
-nbproject/private/
-build/
-nb-configuration.xml
-nbactions.xml
-
-biblioteca_uploads/
-
-.vscode/
-
