@@ -1,4 +1,3 @@
-<%-- Proteccion de sesion e importaciones reales --%>
 <%@page import="java.util.List"%>
 <%@page import="co.edu.uniboyaca.biblioteca.model.Queja"%>
 <%@page import="co.edu.uniboyaca.biblioteca.dao.QuejaDAO"%>
@@ -22,15 +21,14 @@
     } else {
         listaQuejas = dao.listarQuejasPorCorreo(emailUser);
     }
-    
-    // --- NUEVO: Cálculo de Estadísticas Dinámicas ---
+
     int totalPqrs = 0;
     int pendientesPqrs = 0;
     int respondidasPqrs = 0;
-    if(listaQuejas != null) {
+    if (listaQuejas != null) {
         totalPqrs = listaQuejas.size();
-        for(Queja q : listaQuejas) {
-            if("Pendiente".equals(q.getEstado())) {
+        for (Queja q : listaQuejas) {
+            if ("Pendiente".equals(q.getEstado())) {
                 pendientesPqrs++;
             } else {
                 respondidasPqrs++;
@@ -79,8 +77,12 @@
                 min-height: 100vh;
             }
 
-            .modal-backdrop { z-index: 1040 !important; }
-            .modal { z-index: 1060 !important; }
+            .modal-backdrop {
+                z-index: 1040 !important;
+            }
+            .modal {
+                z-index: 1060 !important;
+            }
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -130,11 +132,28 @@
                 font-size: 0.9rem;
             }
 
-            .table-custom { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--text-main) !important; }
-            .table-custom th { border-bottom: 2px solid var(--border-color) !important; padding: 15px; background: transparent !important; color: var(--text-main) !important; font-weight: 600; opacity: 0.8; }
-            .table-custom td { border-bottom: 1px solid var(--border-color) !important; padding: 15px; background: transparent !important; color: var(--text-main) !important; vertical-align: middle; }
+            .table-custom {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                color: var(--text-main) !important;
+            }
+            .table-custom th {
+                border-bottom: 2px solid var(--border-color) !important;
+                padding: 15px;
+                background: transparent !important;
+                color: var(--text-main) !important;
+                font-weight: 600;
+                opacity: 0.8;
+            }
+            .table-custom td {
+                border-bottom: 1px solid var(--border-color) !important;
+                padding: 15px;
+                background: transparent !important;
+                color: var(--text-main) !important;
+                vertical-align: middle;
+            }
 
-            /* --- CORRECCIÓN DESPLEGABLES --- */
             .form-control-apple, .form-select.form-control-apple {
                 background-color: var(--soft-gray) !important;
                 color: var(--text-main) !important;
@@ -151,28 +170,82 @@
                 background-color: #1c1c1e !important;
                 color: #f5f5f7 !important;
             }
-            /* Flecha select en dark mode */
+
             .dark-mode .form-select.form-control-apple {
                 background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f5f5f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
             }
 
-            /* --- BOTONES --- */
-            .btn-apple-red { background: var(--brand-red); color: white; border: none; border-radius: 16px; padding: 14px 25px; font-weight: 600; transition: 0.2s; }
-            .btn-apple-red:hover { background: var(--brand-red-hover); color: white; transform: translateY(-1px); }
-            
-            .btn-action-primary { background: rgba(0, 122, 255, 0.1); color: var(--brand-blue); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
-            .btn-action-primary:hover { background: var(--brand-blue); color: white; }
-            
-            .btn-action-warning { background: rgba(255, 159, 10, 0.1); color: #ff9f0a; border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
-            .btn-action-warning:hover { background: #ff9f0a; color: white; }
-            
-            .btn-view-ans { background: rgba(52, 199, 89, 0.1); color: var(--accent-green); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 0.85rem; transition: 0.2s; }
-            .btn-view-ans:hover { background: var(--accent-green); color: white; }
 
-            .reveal { opacity: 0; transform: translateY(20px); transition: 0.5s ease; }
-            .reveal.active { opacity: 1; transform: translateY(0); }
-            
-            /* Tarjetas de Estadísticas */
+            .btn-apple-red {
+                background: var(--brand-red);
+                color: white;
+                border: none;
+                border-radius: 16px;
+                padding: 14px 25px;
+                font-weight: 600;
+                transition: 0.2s;
+            }
+            .btn-apple-red:hover {
+                background: var(--brand-red-hover);
+                color: white;
+                transform: translateY(-1px);
+            }
+
+            .btn-action-primary {
+                background: rgba(0, 122, 255, 0.1);
+                color: var(--brand-blue);
+                border: none;
+                border-radius: 10px;
+                padding: 6px 12px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                transition: 0.2s;
+            }
+            .btn-action-primary:hover {
+                background: var(--brand-blue);
+                color: white;
+            }
+
+            .btn-action-warning {
+                background: rgba(255, 159, 10, 0.1);
+                color: #ff9f0a;
+                border: none;
+                border-radius: 10px;
+                padding: 6px 12px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                transition: 0.2s;
+            }
+            .btn-action-warning:hover {
+                background: #ff9f0a;
+                color: white;
+            }
+
+            .btn-view-ans {
+                background: rgba(52, 199, 89, 0.1);
+                color: var(--accent-green);
+                border: none;
+                border-radius: 10px;
+                padding: 6px 12px;
+                font-weight: 700;
+                font-size: 0.85rem;
+                transition: 0.2s;
+            }
+            .btn-view-ans:hover {
+                background: var(--accent-green);
+                color: white;
+            }
+
+            .reveal {
+                opacity: 0;
+                transform: translateY(20px);
+                transition: 0.5s ease;
+            }
+            .reveal.active {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
             .stat-card {
                 border-radius: 20px;
                 padding: 1.5rem;
@@ -183,7 +256,13 @@
                 gap: 15px;
             }
             .stat-icon {
-                width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+                width: 50px;
+                height: 50px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
             }
         </style>
     </head>
@@ -202,16 +281,15 @@
             <div class="alert alert-success border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green); font-weight: 600;">
                 <i class="bi bi-check-circle-fill me-2"></i> <%= request.getAttribute("mensaje")%>
             </div>
-            <% } %>
+            <% }%>
 
-            <%-- NUEVO: DASHBOARD DE ESTADÍSTICAS --%>
             <div class="row g-3 mb-5 reveal active">
                 <div class="col-md-4">
                     <div class="stat-card">
                         <div class="stat-icon" style="background: rgba(0, 122, 255, 0.1); color: var(--brand-blue);"><i class="bi bi-inboxes-fill"></i></div>
                         <div>
                             <p class="info-label mb-0">Total Radicados</p>
-                            <h3 class="fw-bold mb-0"><%= totalPqrs %></h3>
+                            <h3 class="fw-bold mb-0"><%= totalPqrs%></h3>
                         </div>
                     </div>
                 </div>
@@ -220,7 +298,7 @@
                         <div class="stat-icon" style="background: rgba(255, 159, 10, 0.1); color: #ff9f0a;"><i class="bi bi-hourglass-split"></i></div>
                         <div>
                             <p class="info-label mb-0">En Trámite (Pendientes)</p>
-                            <h3 class="fw-bold mb-0"><%= pendientesPqrs %></h3>
+                            <h3 class="fw-bold mb-0"><%= pendientesPqrs%></h3>
                         </div>
                     </div>
                 </div>
@@ -229,7 +307,7 @@
                         <div class="stat-icon" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green);"><i class="bi bi-check-all"></i></div>
                         <div>
                             <p class="info-label mb-0">Resueltas / Respondidas</p>
-                            <h3 class="fw-bold mb-0"><%= respondidasPqrs %></h3>
+                            <h3 class="fw-bold mb-0"><%= respondidasPqrs%></h3>
                         </div>
                     </div>
                 </div>
@@ -237,8 +315,8 @@
 
             <% if ("Docente".equals(rol)) { %>
             <div class="glass-panel reveal active">
-                
-                <%-- NUEVO: BARRA DE BÚSQUEDA Y FILTROS --%>
+
+
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                     <h4 class="fw-bold m-0"><i class="bi bi-shield-lock-fill me-2" style="color: var(--brand-red);"></i>Panel de Gestión</h4>
                     <div class="d-flex gap-2 w-100 justify-content-md-end">
@@ -264,7 +342,7 @@
                                     <div class="fw-bold"><%= q.getNombreSolicitante()%></div>
                                     <div class="small opacity-50"><%= q.getCorreoSolicitante()%></div>
                                 </td>
-                                <td><span class="badge border border-secondary text-secondary bg-transparent"><%= q.getTipoSolicitud() %></span></td>
+                                <td><span class="badge border border-secondary text-secondary bg-transparent"><%= q.getTipoSolicitud()%></span></td>
                                 <td class="fw-medium"><%= q.getAsunto()%></td>
                                 <td>
                                     <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-warning text-dark" : "bg-success text-white"%> px-3 col-estado">
@@ -286,8 +364,8 @@
                                 </td>
                             </tr>
                             <% }
-                                } else { %>
-                                <tr><td colspan="5" class="text-center py-5 opacity-50">Buzón vacío. No hay PQRS registradas.</td></tr>
+                            } else { %>
+                            <tr><td colspan="5" class="text-center py-5 opacity-50">Buzón vacío. No hay PQRS registradas.</td></tr>
                             <% } %>
                         </tbody>
                     </table>
@@ -302,7 +380,7 @@
                         <form action="ProcesarQuejaServlet" method="POST">
                             <input type="hidden" name="accion" value="radicar">
                             <input type="hidden" name="nombreSolicitante" value="<%= nombreUser%>">
-                            
+
                             <div class="mb-3">
                                 <label class="info-label">Categoría del requerimiento</label>
                                 <select name="tipoSolicitud" class="form-select form-control-apple">
@@ -332,7 +410,7 @@
 
                 <div class="col-lg-7">
                     <div class="glass-panel reveal active h-100">
-                        
+
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                             <h4 class="fw-bold m-0"><i class="bi bi-chat-right-dots-fill me-2"></i>Mis Solicitudes</h4>
                             <div class="input-group" style="max-width: 250px;">
@@ -340,7 +418,7 @@
                                 <input type="text" id="buscadorPQRS" onkeyup="filtrarTabla()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar radicado..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
                             </div>
                         </div>
-                        
+
                         <div class="table-responsive">
                             <table class="table table-custom align-middle" id="tablaPQRS">
                                 <thead><tr><th>Radicado</th><th>Asunto</th><th>Estado</th><th class="text-center">Gestión</th></tr></thead>
@@ -348,7 +426,7 @@
                                     <% if (listaQuejas != null && !listaQuejas.isEmpty()) {
                                             for (Queja q : listaQuejas) {%>
                                     <tr>
-                                        <td><span class="fw-bold">#<%= q.getId() %></span><br><span class="small opacity-50"><%= q.getTipoSolicitud() %></span></td>
+                                        <td><span class="fw-bold">#<%= q.getId()%></span><br><span class="small opacity-50"><%= q.getTipoSolicitud()%></span></td>
                                         <td class="fw-medium small"><%= q.getAsunto()%></td>
                                         <td>
                                             <span class="badge rounded-pill <%= q.getEstado().equals("Pendiente") ? "bg-secondary" : "bg-success text-white"%> px-3 col-estado">
@@ -385,7 +463,6 @@
             <% } %>
         </div>
 
-        <%-- --- SECCIÓN DE MODALES --- --%>
         <% if (listaQuejas != null) {
                 for (Queja q : listaQuejas) {%>
 
@@ -416,7 +493,7 @@
         </div>
 
         <% if ("Docente".equals(rol)) {%>
-        <%-- MODAL DE RESPUESTA PARA EL ADMIN --%>
+
         <div class="modal fade" id="modalResp<%= q.getId()%>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content border-0">
@@ -532,7 +609,7 @@
             </div>
         </div>
         <% } else if ("Respondida".equals(q.getEstado())) {%>
-        <%-- MODAL VER RESPUESTA (ESTUDIANTE) - ACTUALIZADO CON MÁS INFO --%>
+
         <div class="modal fade" id="modalVer<%= q.getId()%>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content border-0">
@@ -577,68 +654,68 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-            // --- NUEVA LÓGICA: FILTROS Y BÚSQUEDA ---
-            function filtrarTabla() {
-                let input = document.getElementById("buscadorPQRS").value.toLowerCase();
-                let filas = document.querySelectorAll("#tablaPQRS tbody tr");
-                
-                filas.forEach(fila => {
-                    // Evitar ocultar el mensaje de "No hay PQRS"
-                    if(fila.cells.length === 1) return;
-                    
-                    let texto = fila.innerText.toLowerCase();
-                    fila.style.display = texto.includes(input) ? "" : "none";
-                });
-            }
+                                    function filtrarTabla() {
+                                        let input = document.getElementById("buscadorPQRS").value.toLowerCase();
+                                        let filas = document.querySelectorAll("#tablaPQRS tbody tr");
 
-            function filtrarEstado(estadoBuscar) {
-                let filas = document.querySelectorAll("#tablaPQRS tbody tr");
-                
-                filas.forEach(fila => {
-                    if(fila.cells.length === 1) return;
-                    
-                    let spanEstado = fila.querySelector(".col-estado");
-                    if(spanEstado) {
-                        let estadoActual = spanEstado.innerText.trim();
-                        if(estadoBuscar === 'Todas' || estadoActual === estadoBuscar) {
-                            fila.style.display = "";
-                        } else {
-                            fila.style.display = "none";
-                        }
-                    }
-                });
-            }
+                                        filas.forEach(fila => {
 
-            // Lógica de tema oscuro
-            const body = document.body;
-            function applyTheme(isDark) {
-                if (isDark)
-                    body.classList.add('dark-mode');
-                else
-                    body.classList.remove('dark-mode');
-            }
-            if (localStorage.getItem('theme') === 'light')
-                applyTheme(false);
-            else
-                applyTheme(true);
+                                            if (fila.cells.length === 1)
+                                                return;
 
-            document.addEventListener('click', function (e) {
-                const target = e.target.closest('#theme-toggle');
-                if (target) {
-                    const isNowDark = !body.classList.contains('dark-mode');
-                    localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
-                    applyTheme(isNowDark);
-                }
-            });
+                                            let texto = fila.innerText.toLowerCase();
+                                            fila.style.display = texto.includes(input) ? "" : "none";
+                                        });
+                                    }
 
-            // Animaciones
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting)
-                        entry.target.classList.add('active');
-                });
-            }, {threshold: 0.1});
-            document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+                                    function filtrarEstado(estadoBuscar) {
+                                        let filas = document.querySelectorAll("#tablaPQRS tbody tr");
+
+                                        filas.forEach(fila => {
+                                            if (fila.cells.length === 1)
+                                                return;
+
+                                            let spanEstado = fila.querySelector(".col-estado");
+                                            if (spanEstado) {
+                                                let estadoActual = spanEstado.innerText.trim();
+                                                if (estadoBuscar === 'Todas' || estadoActual === estadoBuscar) {
+                                                    fila.style.display = "";
+                                                } else {
+                                                    fila.style.display = "none";
+                                                }
+                                            }
+                                        });
+                                    }
+
+                                    const body = document.body;
+                                    function applyTheme(isDark) {
+                                        if (isDark)
+                                            body.classList.add('dark-mode');
+                                        else
+                                            body.classList.remove('dark-mode');
+                                    }
+                                    if (localStorage.getItem('theme') === 'light')
+                                        applyTheme(false);
+                                    else
+                                        applyTheme(true);
+
+                                    document.addEventListener('click', function (e) {
+                                        const target = e.target.closest('#theme-toggle');
+                                        if (target) {
+                                            const isNowDark = !body.classList.contains('dark-mode');
+                                            localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+                                            applyTheme(isNowDark);
+                                        }
+                                    });
+
+
+                                    const observer = new IntersectionObserver((entries) => {
+                                        entries.forEach(entry => {
+                                            if (entry.isIntersecting)
+                                                entry.target.classList.add('active');
+                                        });
+                                    }, {threshold: 0.1});
+                                    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
     </body>
     <script type="text/javascript">

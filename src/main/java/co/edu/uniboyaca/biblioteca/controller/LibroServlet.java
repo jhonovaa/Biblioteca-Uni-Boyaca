@@ -16,22 +16,20 @@ import javax.servlet.http.Part;
 
 @WebServlet(name = "LibroServlet", urlPatterns = {"/LibroServlet"})
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 2, // 2MB
-    maxFileSize = 1024 * 1024 * 10,      // 10MB
-    maxRequestSize = 1024 * 1024 * 50    // 50MB
+        fileSizeThreshold = 1024 * 1024 * 2,
+        maxFileSize = 1024 * 1024 * 10,
+        maxRequestSize = 1024 * 1024 * 50
 )
 public class LibroServlet extends HttpServlet {
-
-    // Ruta absoluta física para persistencia total
+//para funcionar cambiar unibiacion donde se encutra la carpeta raiz del proyecto 
     private static final String UPLOAD_DIR = "C:\\Users\\angel\\OneDrive\\Desktop\\jabones y git\\Biblioteca-Uni-Boyaca\\biblioteca_uploads";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         String accion = request.getParameter("accion");
-        
-        // --- 1. LÓGICA PARA DESCARGAR PDF ---
+
         if ("descargar".equals(accion)) {
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
@@ -43,15 +41,15 @@ public class LibroServlet extends HttpServlet {
 
                     if (downloadFile.exists()) {
                         FileInputStream inStream = new FileInputStream(downloadFile);
-                        
+
                         String mimeType = getServletContext().getMimeType(downloadFile.getAbsolutePath());
-                        if (mimeType == null) {        
+                        if (mimeType == null) {
                             mimeType = "application/pdf";
                         }
-                        
+
                         response.setContentType(mimeType);
                         response.setContentLength((int) downloadFile.length());
-                        
+
                         String headerKey = "Content-Disposition";
                         String headerValue = String.format("attachment; filename=\"%s\"", libro.getUrlPdf());
                         response.setHeader(headerKey, headerValue);
@@ -66,15 +64,13 @@ public class LibroServlet extends HttpServlet {
 
                         inStream.close();
                         outStream.flush();
-                        return; 
+                        return;
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } 
-        // --- 2. LÓGICA PARA MOSTRAR LA IMAGEN EN LA PÁGINA (NUEVO) ---
-        else if ("verImagen".equals(accion)) {
+        } else if ("verImagen".equals(accion)) {
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 LibroDAOImpl dao = new LibroDAOImpl();
@@ -87,7 +83,7 @@ public class LibroServlet extends HttpServlet {
                         FileInputStream inStream = new FileInputStream(imgFile);
                         String mimeType = getServletContext().getMimeType(imgFile.getAbsolutePath());
                         if (mimeType == null) {
-                            mimeType = "image/jpeg"; // Tipo por defecto para imágenes
+                            mimeType = "image/jpeg";
                         }
 
                         response.setContentType(mimeType);
@@ -103,30 +99,26 @@ public class LibroServlet extends HttpServlet {
 
                         inStream.close();
                         outStream.flush();
-                        return; // Terminar el flujo aquí
+                        return;
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return; // Si no hay imagen, no hace nada (para no romper el modal)
+            return;
         }
-        
-        // Si no es descarga o hay error, vuelve a la lista
+
         response.sendRedirect("libro.jsp");
     }
 
-    /**
-     * El método doPost se encarga de INSERTAR, ACTUALIZAR y SUBIR los archivos
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         request.setCharacterEncoding("UTF-8");
         String accion = request.getParameter("accion");
         LibroDAOImpl dao = new LibroDAOImpl();
-        
+
         try {
             if ("insertar".equals(accion) || "actualizar".equals(accion)) {
                 Libro l = new Libro();
@@ -134,12 +126,11 @@ public class LibroServlet extends HttpServlet {
                 l.setIsbn(request.getParameter("txtIsbn"));
                 l.setIdAutor(Integer.parseInt(request.getParameter("txtAutor")));
                 l.setIdCategoria(Integer.parseInt(request.getParameter("txtCategoria")));
-                
+
                 String edi = request.getParameter("txtEditorial");
                 l.setIdEditorial((edi != null && !edi.isEmpty()) ? Integer.parseInt(edi) : 0);
                 l.setDisponible(Integer.parseInt(request.getParameter("txtStock")));
 
-                // Buscamos el libro original en caso de actualización para no perder sus archivos si no se suben unos nuevos
                 Libro libroAnterior = null;
                 if ("actualizar".equals(accion)) {
                     int id = Integer.parseInt(request.getParameter("txtId"));
@@ -152,7 +143,6 @@ public class LibroServlet extends HttpServlet {
                     uploadDir.mkdirs();
                 }
 
-                // --- PROCESAMIENTO DEL ARCHIVO PDF ---
                 Part filePdfPart = request.getPart("filePdf");
                 String pdfName = getFileName(filePdfPart);
                 if (pdfName != null && !pdfName.isEmpty()) {
@@ -163,7 +153,6 @@ public class LibroServlet extends HttpServlet {
                     l.setUrlPdf(libroAnterior.getUrlPdf());
                 }
 
-                // --- PROCESAMIENTO DE LA IMAGEN (NUEVO) ---
                 Part fileImgPart = request.getPart("fileImg");
                 String imgName = getFileName(fileImgPart);
                 if (imgName != null && !imgName.isEmpty()) {
@@ -174,7 +163,6 @@ public class LibroServlet extends HttpServlet {
                     l.setUrlImg(libroAnterior.getUrlImg());
                 }
 
-                // --- PERSISTENCIA EN BASE DE DATOS ---
                 boolean res = false;
                 if ("actualizar".equals(accion)) {
                     res = dao.actualizar(l);

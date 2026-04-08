@@ -11,21 +11,19 @@
 <%@page import="java.util.List"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%
-    // Verificacion de sesion
+
     if (session.getAttribute("nombreUsuario") == null) {
         response.sendRedirect("login.jsp");
         return;
     }
 
-    // Datos de sesion
     Integer idUsuarioLogueado = (Integer) session.getAttribute("idUsuario");
     String nombreCompleto = (String) session.getAttribute("nombreUsuario");
     String rol = (String) session.getAttribute("tipoUsuario");
 
     PrestamoDAOImpl pDao = new PrestamoDAOImpl();
-    LibroDAOImpl lDao = new LibroDAOImpl(); // Instancia para buscar la portada de los libros
+    LibroDAOImpl lDao = new LibroDAOImpl();
 
-    // Cargamos la lista de préstamos desde el principio
     List<Prestamos> listaP = pDao.listarPrestamos();
 %>
 <!DOCTYPE html>
@@ -73,7 +71,6 @@
                 min-height: 100vh;
             }
 
-            /* --- PARCHE MODAL --- */
             .modal-backdrop {
                 z-index: 1040 !important;
             }
@@ -105,7 +102,7 @@
                 margin-bottom: 6px;
             }
 
-            /* --- TABLAS MODO OSCURO --- */
+
             .table-custom {
                 width: 100%;
                 border-collapse: separate;
@@ -127,7 +124,6 @@
                 vertical-align: middle;
             }
 
-            /* --- FORMULARIOS --- */
             .form-control-apple {
                 background-color: var(--soft-gray) !important;
                 color: var(--text-main) !important;
@@ -145,7 +141,6 @@
                 color: #f5f5f7 !important;
             }
 
-            /* --- TEXTOS PLACEHOLDER PARA MODO OSCURO --- */
             .dark-mode .form-control-apple::placeholder {
                 color: rgba(245, 245, 247, 0.4) !important;
             }
@@ -153,7 +148,6 @@
                 color: rgba(245, 245, 247, 0.5) !important;
             }
 
-            /* --- BOTONES UNIFICADOS --- */
             .btn-apple-red {
                 background: var(--brand-red);
                 color: white;
@@ -183,7 +177,7 @@
                 color: var(--apple-bg);
             }
 
-            /* Botones de acción en tabla */
+
             .btn-action-primary {
                 background: rgba(0, 122, 255, 0.1);
                 color: var(--brand-blue);
@@ -243,8 +237,7 @@
                 background: var(--brand-red);
                 color: white;
             }
-
-            /* Alertas SweetAlert Premium */
+            
             .swal2-popup {
                 border-radius: 24px !important;
                 border: 1px solid var(--border-color) !important;
@@ -273,7 +266,6 @@
 
             <div class="row g-4">
 
-                <%-- FORMULARIO PARA ESTUDIANTES --%>
                 <% if (rol.equals("Estudiante")) {%>
                 <div class="col-lg-4">
                     <div class="glass-panel reveal active h-100">
@@ -304,7 +296,6 @@
                                 </select>
                             </div>
 
-                            <%-- CONTENEDOR NUEVO: PREVISUALIZACIÓN DE PORTADA --%>
                             <div id="preview-container" class="mb-3 text-center p-3 rounded-4 d-none" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 190px;">
                                 <div id="preview-wrapper" class="w-100 h-100 d-flex flex-column justify-content-center align-items-center">
                                 </div>
@@ -321,7 +312,7 @@
                 </div>
                 <% }%>
 
-                <%-- TABLA DE REGISTROS --%>
+
                 <div class="<%= rol.equals("Docente") ? "col-12" : "col-lg-8"%>">
                     <div class="glass-panel reveal active delay-1 h-100">
 
@@ -329,7 +320,6 @@
                             <h4 class="fw-bold m-0"><i class="bi bi-journal-text me-2" style="color: var(--brand-red);"></i>Registros Actuales</h4>
 
                             <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
-                                <%-- BARRA DE BÚSQUEDA ADAPTATIVA --%>
                                 <div class="input-group" style="max-width: 250px;">
                                     <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
                                         <i class="bi bi-search text-muted"></i>
@@ -379,7 +369,6 @@
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
 
-                                                <%-- BOTONES DE ACCIÓN UNIFICADOS A ÍCONOS --%>
                                                 <% if (rol.equals("Docente") && p.getEstado().equals("Activo")) {%>
                                                 <a href="PrestamoController?accion=devolver&idP=<%= p.getIdPrestamo()%>" class="btn-action-primary text-decoration-none" title="Devolver Libro"><i class="bi bi-arrow-return-left"></i></a>
 
@@ -413,16 +402,13 @@
             </div>
         </div>
 
-        <%-- --- SECCIÓN DE MODALES DE DETALLE (Diseño Premium con Imagen) --- --%>
         <%
             if (listaP != null) {
                 for (Prestamos p : listaP) {
                     if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
 
-                        // 1. Buscamos el libro para traer la portada
                         Libro libroModal = lDao.buscarPorId(p.getIdLibro());
 
-                        // 2. Buscamos si tiene multa y si fue pagada para condicionar el botón de recibo
                         double montoMulta = 0;
                         boolean multaPagada = false;
                         try {
@@ -440,7 +426,6 @@
                         } catch (Exception e) {
                         }
 
-                        // Validacion estricta para mostrar el recibo
                         boolean mostrarRecibo = p.getEstado().equals("Devuelto") && (montoMulta == 0 || multaPagada);
 
                         String fechaReferencia = (p.getFechaDevolucionReal() != null) ? p.getFechaDevolucionReal().toString() : "N/A";
@@ -458,7 +443,7 @@
                         </div>
 
                         <div class="row align-items-center mb-4">
-                            <%-- Columna de la Portada --%>
+
                             <div class="col-md-4 text-center mb-4 mb-md-0">
                                 <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
                                     <% if (libroModal != null && libroModal.getUrlImg() != null && !libroModal.getUrlImg().isEmpty()) {%>
@@ -470,7 +455,6 @@
                                 </div>
                             </div>
 
-                            <%-- Columna de la Información Básica --%>
                             <div class="col-md-8">
                                 <h3 class="fw-bold mb-1">Detalle del Préstamo</h3>
                                 <p class="small opacity-50 mb-3">Registro Oficial #<%= p.getIdPrestamo()%></p>
@@ -527,11 +511,9 @@
                             <% } %>
                         </div>
 
-                        <%-- BOTONES DEL MODAL INCLUYENDO EL RECIBO (CONDICIONADO) --%>
                         <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
                             <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
 
-                            <%-- Botón de Paz y Salvo / Recibo. Solo aparece si ya está devuelto y pagado --%>
                             <% if (mostrarRecibo) {%>
                             <button type="button" class="btn btn-outline-success rounded-pill px-4 fw-bold" onclick="generarRecibo(<%= p.getIdPrestamo()%>, '<%= p.getNombreUsuario()%>', '<%= p.getTituloLibro().replace("'", "\\'")%>', <%= montoMulta%>, '<%= fechaReferencia%>')">
                                 <i class="bi bi-receipt me-2"></i>Descargar Recibo / Paz y Salvo
@@ -552,14 +534,13 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                // --- NUEVA LÓGICA: FILTRAR TABLA PRÉSTAMOS ---
                                 function filtrarPrestamos() {
                                     let input = document.getElementById("buscadorPrestamos").value.toLowerCase();
                                     let filas = document.querySelectorAll("#tablaPrestamos tbody tr");
 
                                     filas.forEach(fila => {
                                         if (fila.cells.length === 1)
-                                            return; // Ignora fila de tabla vacía
+                                            return;
                                         let textoFila = fila.innerText.toLowerCase();
                                         fila.style.display = textoFila.includes(input) ? "" : "none";
                                     });
@@ -588,7 +569,7 @@
 
                                 function generarRecibo(id, usuario, libro, montoMulta, fechaReferencia) {
                                     const {jsPDF} = window.jspdf;
-                                    const doc = new jsPDF('p', 'pt', 'a5'); // Formato A5 para recibos
+                                    const doc = new jsPDF('p', 'pt', 'a5');
 
                                     doc.setDrawColor(200, 200, 200);
                                     doc.roundedRect(20, 20, 380, 500, 10, 10);

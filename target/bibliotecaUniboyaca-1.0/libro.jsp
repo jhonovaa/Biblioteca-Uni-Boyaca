@@ -92,7 +92,6 @@
         }
     }
 
-    // Lógica de PDF fuera del bloque de Docente para que estudiantes también descarguen
     if (accion != null && (accion.equals("PDF") || accion.equals("descargar"))) {
         String idStr = request.getParameter("id");
         try {
@@ -129,7 +128,7 @@
 
                         inStream.close();
                         outStream.flush();
-                        return; // IMPORTANTE: terminar el flujo aquí para no enviar el resto del HTML
+                        return; 
                     } else {
                         response.sendRedirect("libro.jsp?err=archivo_no_encontrado");
                     }
@@ -196,7 +195,6 @@
             .modal {
                 z-index: 1060 !important;
             }
-
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -263,10 +261,18 @@
                 color: #f5f5f7 !important;
             }
 
+            .dark-mode .form-control-apple::placeholder {
+                color: rgba(245, 245, 247, 0.4) !important;
+            }
+            .dark-mode .text-muted {
+                color: rgba(245, 245, 247, 0.5) !important;
+            }
+
             .input-group-apple .form-control-apple {
                 border-top-right-radius: 0;
                 border-bottom-right-radius: 0;
             }
+
             .btn-plus-apple {
                 background: rgba(255, 59, 48, 0.1);
                 color: var(--brand-red);
@@ -339,7 +345,6 @@
                 color: #f5f5f7;
                 border: 1px solid rgba(255, 255, 255, 0.15);
             }
-
             .badge-red {
                 background: rgba(255, 59, 48, 0.1);
                 color: var(--brand-red);
@@ -347,17 +352,21 @@
             }
 
             .btn-action-primary {
-                background: rgba(255, 255, 255, 0.1);
-                color: var(--text-main);
-                border: 1px solid var(--border-color);
+                background: rgba(0, 122, 255, 0.1);
+                color: var(--brand-blue);
+                border: none;
                 border-radius: 10px;
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
             }
             .btn-action-primary:hover {
-                background: var(--text-main);
-                color: var(--apple-bg);
+                background: var(--brand-blue);
+                color: white;
             }
 
             .btn-action-danger {
@@ -368,6 +377,10 @@
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
             }
             .btn-action-danger:hover {
                 background: var(--brand-red);
@@ -502,27 +515,34 @@
                                 <input type="number" name="txtStock" class="form-control form-control-apple" value="<%= (libEdit.getIdLibro() > 0) ? libEdit.getDisponible() : ""%>" min="0" required>
                             </div>
 
-                            <%-- Botón para subir la Portada en Imagen --%>
                             <div class="mb-3">
                                 <label class="info-label">Portada del Libro (Imagen)</label>
                                 <div class="input-group input-group-apple">
-                                    <input type="file" name="fileImg" id="fileImg" class="form-control form-control-apple" accept="image/png, image/jpeg, image/jpg">
+                                    <input type="file" name="fileImg" id="fileImg" class="form-control form-control-apple" accept="image/png, image/jpeg, image/jpg" onchange="previewImage(event)">
                                     <button type="button" class="btn-plus-apple" onclick="document.getElementById('fileImg').click();" title="Seleccionar imagen"><i class="bi bi-image"></i></button>
                                 </div>
+                                <div id="imgPreviewContainer" class="mt-3 text-center d-none">
+                                    <img id="imgPreview" src="" alt="Previsualización" style="max-height: 180px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                </div>
                                 <% if (libEdit.getUrlImg() != null && !libEdit.getUrlImg().isEmpty()) {%>
-                                <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill"></i> Imagen actual: <%= libEdit.getUrlImg()%></small>
+                                <small class="text-success d-block mt-2"><i class="bi bi-check-circle-fill"></i> Imagen actual: <%= libEdit.getUrlImg()%></small>
                                 <% }%> 
                             </div>
 
-                            <%-- Botón para subir el PDF --%>
+           
                             <div class="mb-4">
                                 <label class="info-label">Documento PDF (Opcional)</label>
                                 <div class="input-group input-group-apple">
-                                    <input type="file" name="filePdf" id="filePdf" class="form-control form-control-apple" accept="application/pdf">
+                                    <input type="file" name="filePdf" id="filePdf" class="form-control form-control-apple" accept="application/pdf" onchange="previewPdf(event)">
                                     <button type="button" class="btn-plus-apple" onclick="document.getElementById('filePdf').click();" title="Seleccionar archivo"><i class="bi bi-file-earmark-pdf"></i></button>
                                 </div>
+
+                                <div id="pdfPreviewContainer" class="mt-3 d-none" style="height: 350px;">
+                                    <iframe id="pdfPreview" src="" class="w-100 h-100" style="border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></iframe>
+                                </div>
+
                                 <% if (libEdit.getUrlPdf() != null && !libEdit.getUrlPdf().isEmpty()) {%>
-                                <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill"></i> <%= libEdit.getUrlPdf()%></small>
+                                <small class="text-success d-block mt-2"><i class="bi bi-check-circle-fill"></i> PDF actual: <%= libEdit.getUrlPdf()%></small>
                                 <% }%>
                             </div>
 
@@ -545,7 +565,6 @@
 
                             <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
 
-                                <%-- NUEVO: BARRA DE BÚSQUEDA ADAPTADA AL TEMA --%>
                                 <div class="input-group" style="max-width: 250px;">
                                     <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
                                         <i class="bi bi-search text-muted"></i>
@@ -611,7 +630,7 @@
                                                 </button>
 
                                                 <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
-                                                <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn btn-sm btn-outline-danger" title="Descargar PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                                                <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" target="_blank" class="btn btn-sm btn-outline-danger" title="Abrir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
                                                     <% } else { %>
                                                 <button class="btn btn-sm btn-outline-secondary disabled" title="Sin PDF disponible"><i class="bi bi-file-earmark-x"></i></button>
                                                     <% } %>
@@ -628,9 +647,7 @@
             </div>
         </div>
 
-        <%-- ==========================================
-             MODALES DE DETALLE DE LIBROS 
-             ========================================== --%>
+      
         <% if (lista != null) {
                 for (Libro b : lista) {%>
         <div class="modal fade" id="modalDetalle<%= b.getIdLibro()%>" tabindex="-1" aria-hidden="true">
@@ -686,8 +703,8 @@
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
                             <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
-                            <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn-apple-red text-decoration-none">
-                                <i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF
+                            <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" target="_blank" class="btn-apple-red text-decoration-none">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Abrir PDF
                             </a>
                             <% } %>
                         </div>
@@ -699,9 +716,6 @@
             } %>
 
 
-        <%-- ==========================================
-             MODALES DE CREACIÓN RÁPIDA 
-             ========================================== --%>
         <div class="modal fade" id="modalAutor" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
@@ -795,16 +809,42 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                                    // --- NUEVO: FILTRAR TABLA CATÁLOGO ---
+                                                 
+                                                    function previewImage(event) {
+                                                        const input = event.target;
+                                                        const container = document.getElementById('imgPreviewContainer');
+                                                        const img = document.getElementById('imgPreview');
+
+                                                        if (input.files && input.files[0]) {
+                                                            img.src = URL.createObjectURL(input.files[0]);
+                                                            container.classList.remove('d-none');
+                                                        } else {
+                                                            container.classList.add('d-none');
+                                                            img.src = "";
+                                                        }
+                                                    }
+
+                                                    function previewPdf(event) {
+                                                        const input = event.target;
+                                                        const container = document.getElementById('pdfPreviewContainer');
+                                                        const iframe = document.getElementById('pdfPreview');
+
+                                                        if (input.files && input.files[0]) {
+                                                            iframe.src = URL.createObjectURL(input.files[0]);
+                                                            container.classList.remove('d-none');
+                                                        } else {
+                                                            container.classList.add('d-none');
+                                                            iframe.src = "";
+                                                        }
+                                                    }
+
                                                     function filtrarCatalogo() {
                                                         let input = document.getElementById("buscadorLibros").value.toLowerCase();
                                                         let filas = document.querySelectorAll("#tablaLibros tbody tr");
 
                                                         filas.forEach(fila => {
-                                                            // Evitar ocultar el mensaje de "No hay libros"
                                                             if (fila.cells.length === 1)
-                                                                return;
-
+                                                                return; 
                                                             let textoFila = fila.innerText.toLowerCase();
                                                             fila.style.display = textoFila.includes(input) ? "" : "none";
                                                         });

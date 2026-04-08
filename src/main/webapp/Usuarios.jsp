@@ -70,11 +70,10 @@
         }
     }
 
-    // --- NUEVO: CÁLCULO DE ESTADÍSTICAS E INFORMACIÓN ---
     List<Usuarios> listaUsuarios = dao.listar();
     int totalUsuarios = 0;
     int usuariosActivos = 0;
-    int usuariosProblema = 0; // Sancionados o Inactivos
+    int usuariosProblema = 0;
 
     if (listaUsuarios != null) {
         totalUsuarios = listaUsuarios.size();
@@ -130,7 +129,7 @@
                 --border-color: rgba(255,255,255,0.1);
                 --soft-gray: rgba(255, 255, 255, 0.05);
 
-                /* Variables para el boton de editar en oscuro */
+
                 --btn-edit-bg: rgba(255, 255, 255, 0.1);
                 --btn-edit-text: #ffffff;
                 --btn-edit-hover-bg: rgba(255, 255, 255, 0.2);
@@ -374,7 +373,6 @@
                 transform: translateY(0);
             }
 
-            /* --- ESTILOS DE TARJETAS DE ESTADÍSTICAS --- */
             .stat-card {
                 border-radius: 20px;
                 padding: 1.5rem;
@@ -409,7 +407,7 @@
                 <p class="opacity-50 fs-5" style="color: var(--brand-red);">Administración de cuentas, roles y accesos</p>
             </header>
 
-            <%-- DASHBOARD DE ESTADÍSTICAS --%>
+
             <div class="row g-3 mb-5 reveal active">
                 <div class="col-md-4">
                     <div class="stat-card shadow-sm">
@@ -521,7 +519,7 @@
 
                             <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
 
-                                <%-- BARRA DE BÚSQUEDA --%>
+
                                 <div class="input-group" style="max-width: 250px;">
                                     <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
                                         <i class="bi bi-search text-muted"></i>
@@ -606,13 +604,13 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                                    // --- NUEVO: FILTRAR TABLA USUARIOS ---
+
                                                     function filtrarUsuarios() {
                                                         let input = document.getElementById("buscadorUsuarios").value.toLowerCase();
                                                         let filas = document.querySelectorAll("#tablaUsuarios tbody tr");
 
                                                         filas.forEach(fila => {
-                                                            // Evitar ocultar el mensaje de "No hay usuarios"
+
                                                             if (fila.cells.length === 1)
                                                                 return;
 
