@@ -17,15 +17,14 @@ public class ValidarLogin extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         String correoIn = request.getParameter("txtCorreo");
         String passIn = request.getParameter("txtPassword");
-        
-        // Datos de conexion
+
         String url = "jdbc:mysql://localhost:3306/bibliotecauniboyaca";
         String user = "root";
-        String password = ""; 
-        
+        String password = "";
+
         Connection con = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -33,46 +32,48 @@ public class ValidarLogin extends HttpServlet {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(url, user, password);
-            
-            // Consulta SQL
+
             String sql = "SELECT * FROM usuarios WHERE correo = ? AND contrasena = ? AND estado = 'Activo'";
             ps = con.prepareStatement(sql);
             ps.setString(1, correoIn);
             ps.setString(2, passIn);
-            
+
             rs = ps.executeQuery();
-            
+
             if (rs.next()) {
-                // Creamos la sesion
+
                 HttpSession session = request.getSession();
-                
-                // GUARDAMOS EL EMAIL (Esto es lo que faltaba para el navbar)
-                session.setAttribute("emailUsuario", rs.getString("correo")); 
-                
-                // Guardamos el resto de informacion util
+
+                session.setAttribute("emailUsuario", rs.getString("correo"));
+
                 session.setAttribute("nombreUsuario", rs.getString("nombres") + " " + rs.getString("apellidos"));
                 session.setAttribute("tipoUsuario", rs.getString("tipo_usuario"));
                 session.setAttribute("idUsuario", rs.getInt("id_usuario"));
-                
-                // Redirigir al inicio
+
                 response.sendRedirect("index.jsp");
-                
+
             } else {
-                // Credenciales incorrectas
+
                 request.setAttribute("error", "Correo o contraseña incorrectos o cuenta inactiva");
                 request.getRequestDispatcher("login.jsp").forward(request, response);
             }
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Error tecnico: " + e.getMessage());
             request.getRequestDispatcher("login.jsp").forward(request, response);
         } finally {
-            // Cerramos recursos en el bloque finally por seguridad
+
             try {
-                if (rs != null) rs.close();
-                if (ps != null) ps.close();
-                if (con != null) con.close();
+                if (rs != null) {
+                    rs.close();
+                }
+                if (ps != null) {
+                    ps.close();
+                }
+                if (con != null) {
+                    con.close();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }

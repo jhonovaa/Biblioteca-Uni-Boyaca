@@ -88,35 +88,61 @@
                     response.sendRedirect("libro.jsp?err=en_uso");
                 }
                 return;
-            } else if (accion.equals("insertar") || accion.equals("actualizar")) {
-                try {
-                    Libro l = new Libro();
-                    l.setTitulo(request.getParameter("txtTitulo"));
-                    l.setIsbn(request.getParameter("txtIsbn"));
-                    l.setIdAutor(Integer.parseInt(request.getParameter("txtAutor")));
-                    l.setIdCategoria(Integer.parseInt(request.getParameter("txtCategoria")));
-                    String edi = request.getParameter("txtEditorial");
-                    l.setIdEditorial((edi != null && !edi.isEmpty()) ? Integer.parseInt(edi) : 0);
-                    l.setDisponible(Integer.parseInt(request.getParameter("txtStock")));
-
-                    boolean res = false;
-                    if (accion.equals("actualizar")) {
-                        l.setIdLibro(Integer.parseInt(request.getParameter("txtId")));
-                        res = dao.actualizar(l);
-                    } else {
-                        res = dao.insertar(l);
-                    }
-
-                    if (res) {
-                        request.setAttribute("mensaje", "Operación exitosa con el libro.");
-                    }
-                } catch (Exception e) {
-                    request.setAttribute("error", "Error: " + e.getMessage());
-                }
             }
         }
     }
+
+    if (accion != null && (accion.equals("PDF") || accion.equals("descargar"))) {
+        String idStr = request.getParameter("id");
+        try {
+            if (idStr != null && !idStr.isEmpty()) {
+                int idLibro = Integer.parseInt(idStr);
+                Libro libro = dao.buscarPorId(idLibro);
+
+                if (libro != null && libro.getUrlPdf() != null && !libro.getUrlPdf().isEmpty()) {
+                    String filePath = "C:/Users/angel/OneDrive/Desktop/bibliotecaUniboyaca/bibliotecaUniboyaca/biblioteca_uploads/" + libro.getUrlPdf();
+                    java.io.File downloadFile = new java.io.File(filePath);
+
+                    if (downloadFile.exists()) {
+                        java.io.FileInputStream inStream = new java.io.FileInputStream(downloadFile);
+
+                        String mimeType = getServletContext().getMimeType(filePath);
+                        if (mimeType == null) {
+                            mimeType = "application/pdf";
+                        }
+
+                        response.setContentType(mimeType);
+                        response.setContentLength((int) downloadFile.length());
+
+                        String headerKey = "Content-Disposition";
+                        String headerValue = String.format("attachment; filename=\"%s\"", libro.getTitulo() + ".pdf");
+                        response.setHeader(headerKey, headerValue);
+
+                        java.io.OutputStream outStream = response.getOutputStream();
+                        byte[] buffer = new byte[4096];
+                        int bytesRead = -1;
+
+                        while ((bytesRead = inStream.read(buffer)) != -1) {
+                            outStream.write(buffer, 0, bytesRead);
+                        }
+
+                        inStream.close();
+                        outStream.flush();
+                        return; 
+                    } else {
+                        response.sendRedirect("libro.jsp?err=archivo_no_encontrado");
+                    }
+                } else {
+                    response.sendRedirect("libro.jsp?err=sin_pdf");
+                }
+            }
+        } catch (Exception e) {
+            response.sendRedirect("libro.jsp?err=error_descarga");
+        }
+        return;
+    }
 %>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -169,7 +195,6 @@
             .modal {
                 z-index: 1060 !important;
             }
-
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -236,10 +261,18 @@
                 color: #f5f5f7 !important;
             }
 
+            .dark-mode .form-control-apple::placeholder {
+                color: rgba(245, 245, 247, 0.4) !important;
+            }
+            .dark-mode .text-muted {
+                color: rgba(245, 245, 247, 0.5) !important;
+            }
+
             .input-group-apple .form-control-apple {
                 border-top-right-radius: 0;
                 border-bottom-right-radius: 0;
             }
+
             .btn-plus-apple {
                 background: rgba(255, 59, 48, 0.1);
                 color: var(--brand-red);
@@ -312,7 +345,6 @@
                 color: #f5f5f7;
                 border: 1px solid rgba(255, 255, 255, 0.15);
             }
-
             .badge-red {
                 background: rgba(255, 59, 48, 0.1);
                 color: var(--brand-red);
@@ -320,17 +352,21 @@
             }
 
             .btn-action-primary {
-                background: rgba(255, 255, 255, 0.1);
-                color: var(--text-main);
-                border: 1px solid var(--border-color);
+                background: rgba(0, 122, 255, 0.1);
+                color: var(--brand-blue);
+                border: none;
                 border-radius: 10px;
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
             }
             .btn-action-primary:hover {
-                background: var(--text-main);
-                color: var(--apple-bg);
+                background: var(--brand-blue);
+                color: white;
             }
 
             .btn-action-danger {
@@ -341,6 +377,10 @@
                 padding: 6px 12px;
                 font-weight: 600;
                 font-size: 0.85rem;
+                transition: 0.2s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
             }
             .btn-action-danger:hover {
                 background: var(--brand-red);
@@ -361,6 +401,15 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+
+            .book-cover-preview {
+                width: 120px;
+                height: 180px;
+                object-fit: cover;
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
         </style>
     </head>
     <body class="dark-mode">
@@ -373,14 +422,29 @@
                 <p class="opacity-50 fs-5" style="color: var(--brand-red);">Gestión de catálogo, autores y categorías</p>
             </header>
 
-            <% if (request.getAttribute("mensaje") != null) {%>
+            <%
+                String msj = (String) request.getAttribute("mensaje");
+                if (msj == null) {
+                    msj = (String) session.getAttribute("mensaje");
+                }
+                if (msj != null) {
+                    session.removeAttribute("mensaje");
+            %>
             <div class="alert alert-success border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(52, 199, 89, 0.1); color: var(--accent-green); font-weight: 600;">
-                <i class="bi bi-check-circle-fill me-2"></i> <%= request.getAttribute("mensaje")%>
+                <i class="bi bi-check-circle-fill me-2"></i> <%= msj%>
             </div>
             <% } %>
-            <% if (request.getAttribute("error") != null) {%>
+
+            <%
+                String err = (String) request.getAttribute("error");
+                if (err == null) {
+                    err = (String) session.getAttribute("error");
+                }
+                if (err != null) {
+                    session.removeAttribute("error");
+            %>
             <div class="alert alert-danger border-0 rounded-4 text-center mb-4 shadow-sm" style="background: rgba(255, 59, 48, 0.1); color: var(--brand-red); font-weight: 600;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= request.getAttribute("error")%>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= err%>
             </div>
             <% } %>
 
@@ -394,7 +458,7 @@
                             <%= (libEdit.getIdLibro() > 0) ? "Editar Libro" : "Nuevo Libro"%>
                         </h4>
 
-                        <form method="POST" action="libro.jsp">
+                        <form method="POST" action="LibroServlet" enctype="multipart/form-data">
                             <input type="hidden" name="txtId" value="<%= libEdit.getIdLibro()%>">
 
                             <div class="mb-3">
@@ -451,6 +515,37 @@
                                 <input type="number" name="txtStock" class="form-control form-control-apple" value="<%= (libEdit.getIdLibro() > 0) ? libEdit.getDisponible() : ""%>" min="0" required>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="info-label">Portada del Libro (Imagen)</label>
+                                <div class="input-group input-group-apple">
+                                    <input type="file" name="fileImg" id="fileImg" class="form-control form-control-apple" accept="image/png, image/jpeg, image/jpg" onchange="previewImage(event)">
+                                    <button type="button" class="btn-plus-apple" onclick="document.getElementById('fileImg').click();" title="Seleccionar imagen"><i class="bi bi-image"></i></button>
+                                </div>
+                                <div id="imgPreviewContainer" class="mt-3 text-center d-none">
+                                    <img id="imgPreview" src="" alt="Previsualización" style="max-height: 180px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                </div>
+                                <% if (libEdit.getUrlImg() != null && !libEdit.getUrlImg().isEmpty()) {%>
+                                <small class="text-success d-block mt-2"><i class="bi bi-check-circle-fill"></i> Imagen actual: <%= libEdit.getUrlImg()%></small>
+                                <% }%> 
+                            </div>
+
+           
+                            <div class="mb-4">
+                                <label class="info-label">Documento PDF (Opcional)</label>
+                                <div class="input-group input-group-apple">
+                                    <input type="file" name="filePdf" id="filePdf" class="form-control form-control-apple" accept="application/pdf" onchange="previewPdf(event)">
+                                    <button type="button" class="btn-plus-apple" onclick="document.getElementById('filePdf').click();" title="Seleccionar archivo"><i class="bi bi-file-earmark-pdf"></i></button>
+                                </div>
+
+                                <div id="pdfPreviewContainer" class="mt-3 d-none" style="height: 350px;">
+                                    <iframe id="pdfPreview" src="" class="w-100 h-100" style="border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></iframe>
+                                </div>
+
+                                <% if (libEdit.getUrlPdf() != null && !libEdit.getUrlPdf().isEmpty()) {%>
+                                <small class="text-success d-block mt-2"><i class="bi bi-check-circle-fill"></i> PDF actual: <%= libEdit.getUrlPdf()%></small>
+                                <% }%>
+                            </div>
+
                             <button type="submit" name="accion" value="<%= (libEdit.getIdLibro() > 0) ? "actualizar" : "insertar"%>" class="btn-apple-red w-100 shadow-sm">
                                 <%= (libEdit.getIdLibro() > 0) ? "Guardar Cambios" : "Registrar Libro"%>
                             </button>
@@ -468,12 +563,20 @@
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
                             <h4 class="fw-bold m-0"><i class="bi bi-collection me-2" style="color: var(--brand-red);"></i>Catálogo de Libros</h4>
 
-                            <div class="d-flex gap-2">
-                                <button onclick="exportarExcel()" class="btn-export">
-                                    <i class="bi bi-file-earmark-excel text-success me-1"></i> Excel
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
+
+                                <div class="input-group" style="max-width: 250px;">
+                                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); border-radius: 16px 0 0 16px;">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="buscadorLibros" onkeyup="filtrarCatalogo()" class="form-control form-control-apple border-start-0 ps-0" placeholder="Buscar libro o autor..." style="border-radius: 0 16px 16px 0; background: transparent !important;">
+                                </div>
+
+                                <button onclick="exportarExcel()" class="btn-export" title="Exportar a Excel">
+                                    <i class="bi bi-file-earmark-excel text-success"></i>
                                 </button>
-                                <button onclick="exportarPDF()" class="btn-export">
-                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i> PDF
+                                <button onclick="exportarPDF()" class="btn-export" title="Exportar a PDF">
+                                    <i class="bi bi-file-earmark-pdf text-danger"></i>
                                 </button>
                             </div>
                         </div>
@@ -485,7 +588,7 @@
                                         <th>Detalles del Libro</th>
                                         <th class="text-center">Clasificación</th>
                                         <th class="text-center">Stock</th>
-                                        <% if (rol.equals("Docente")) { %> <th class="text-center">Acciones</th> <% } %>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -515,17 +618,27 @@
                                                 <%= b.getDisponible()%> disp.
                                             </span>
                                         </td>
-                                        <% if (rol.equals("Docente")) {%>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
-                                                <a href="libro.jsp?idEdit=<%= b.getIdLibro()%>" class="btn-action-primary text-decoration-none" title="Editar Libro"><i class="bi bi-pencil-square"></i> Editar</a>
-                                                <button onclick="confirmarEliminar(<%= b.getIdLibro()%>)" class="btn-action-danger text-decoration-none" title="Eliminar Libro"><i class="bi bi-trash3"></i> Borrar</button>
+                                                <% if (rol.equals("Docente")) {%>
+                                                <a href="libro.jsp?idEdit=<%= b.getIdLibro()%>" class="btn-action-primary text-decoration-none" title="Editar Libro"><i class="bi bi-pencil-square"></i></a>
+                                                <button onclick="confirmarEliminar(<%= b.getIdLibro()%>)" class="btn-action-danger text-decoration-none" title="Eliminar Libro"><i class="bi bi-trash3"></i></button>
+                                                    <% }%>
+
+                                                <button class="btn-export border-0" data-bs-toggle="modal" data-bs-target="#modalDetalle<%= b.getIdLibro()%>" title="Ver Info del Libro">
+                                                    <i class="bi bi-eye" style="color: var(--brand-red);"></i>
+                                                </button>
+
+                                                <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
+                                                <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" target="_blank" class="btn btn-sm btn-outline-danger" title="Abrir PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                                                    <% } else { %>
+                                                <button class="btn btn-sm btn-outline-secondary disabled" title="Sin PDF disponible"><i class="bi bi-file-earmark-x"></i></button>
+                                                    <% } %>
                                             </div>
                                         </td>
-                                        <% } %>
                                     </tr>
                                     <% }
-                                } %>
+                                        } %>
                                 </tbody>
                             </table>
                         </div>
@@ -533,6 +646,74 @@
                 </div>
             </div>
         </div>
+
+      
+        <% if (lista != null) {
+                for (Libro b : lista) {%>
+        <div class="modal fade" id="modalDetalle<%= b.getIdLibro()%>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-body p-5">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-book-half fs-1"></i>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
+                                    <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) {%>
+                                    <img src="LibroServlet?accion=verImagen&id=<%= b.getIdLibro()%>" class="book-cover-preview w-100 h-100" style="object-fit: cover;" alt="Portada de <%= b.getTitulo()%>">
+                                    <% } else { %>
+                                    <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                    <span class="small opacity-50">Portada no disponible</span>
+                                    <% }%>
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <h3 class="fw-bold mb-1"><%= b.getTitulo()%></h3>
+                                <p class="small opacity-50 mb-4">ISBN: <%= b.getIsbn()%></p>
+
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Autor</p>
+                                        <p class="fw-bold mb-0"><%= mapAutores.getOrDefault(b.getIdAutor(), "Desconocido")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Categoría</p>
+                                        <p class="fw-bold mb-0" style="color: var(--brand-red);"><%= mapCategorias.getOrDefault(b.getIdCategoria(), "Sin Categoría")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Editorial</p>
+                                        <p class="fw-bold mb-0"><%= mapEditoriales.getOrDefault(b.getIdEditorial(), "N/A")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Stock Disponible</p>
+                                        <p class="fw-bold mb-0 <%= b.getDisponible() > 0 ? "text-success" : "text-danger"%>"><%= b.getDisponible()%> unidades</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" style="border-color: var(--border-color);">
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                            <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
+                            <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" target="_blank" class="btn-apple-red text-decoration-none">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Abrir PDF
+                            </a>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }
+            } %>
 
 
         <div class="modal fade" id="modalAutor" tabindex="-1" aria-hidden="true">
@@ -628,6 +809,47 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
+                                                 
+                                                    function previewImage(event) {
+                                                        const input = event.target;
+                                                        const container = document.getElementById('imgPreviewContainer');
+                                                        const img = document.getElementById('imgPreview');
+
+                                                        if (input.files && input.files[0]) {
+                                                            img.src = URL.createObjectURL(input.files[0]);
+                                                            container.classList.remove('d-none');
+                                                        } else {
+                                                            container.classList.add('d-none');
+                                                            img.src = "";
+                                                        }
+                                                    }
+
+                                                    function previewPdf(event) {
+                                                        const input = event.target;
+                                                        const container = document.getElementById('pdfPreviewContainer');
+                                                        const iframe = document.getElementById('pdfPreview');
+
+                                                        if (input.files && input.files[0]) {
+                                                            iframe.src = URL.createObjectURL(input.files[0]);
+                                                            container.classList.remove('d-none');
+                                                        } else {
+                                                            container.classList.add('d-none');
+                                                            iframe.src = "";
+                                                        }
+                                                    }
+
+                                                    function filtrarCatalogo() {
+                                                        let input = document.getElementById("buscadorLibros").value.toLowerCase();
+                                                        let filas = document.querySelectorAll("#tablaLibros tbody tr");
+
+                                                        filas.forEach(fila => {
+                                                            if (fila.cells.length === 1)
+                                                                return; 
+                                                            let textoFila = fila.innerText.toLowerCase();
+                                                            fila.style.display = textoFila.includes(input) ? "" : "none";
+                                                        });
+                                                    }
+
                                                     function exportarExcel() {
                                                         const table = document.getElementById("tablaLibros");
                                                         const wb = XLSX.utils.table_to_book(table, {sheet: "Catalogo_Libros"});
@@ -726,12 +948,12 @@
 
         <% if (request.getAttribute("mensaje") != null) {%>
         <script>
-        Swal.fire({...getSwalConfig(), title: '¡Éxito!', text: '<%= request.getAttribute("mensaje")%>', icon: 'success'});
+            Swal.fire({...getSwalConfig(), title: '¡Éxito!', text: '<%= request.getAttribute("mensaje")%>', icon: 'success'});
         </script>
         <% } %>
         <% if (request.getAttribute("error") != null) {%>
         <script>
-        Swal.fire({...getSwalConfig(), title: 'Error', text: '<%= request.getAttribute("error")%>', icon: 'error'});
+            Swal.fire({...getSwalConfig(), title: 'Error', text: '<%= request.getAttribute("error")%>', icon: 'error'});
         </script>
         <% }%>
         <script type="text/javascript">

@@ -8,7 +8,62 @@
     // Obtenemos el rol para facilitar las validaciones abajo
     String rol = (String) session.getAttribute("tipoUsuario");
 %>
+<%@page import="java.sql.Connection"%>
+<%@page import="java.sql.PreparedStatement"%>
+<%@page import="java.sql.ResultSet"%>
+<%@page import="co.edu.uniboyaca.biblioteca.util.Conexion"%>
+<%@page import="co.edu.uniboyaca.biblioteca.model.Libro"%>
+<%@page import="co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="java.util.List"%>
+<%@page import="java.util.Map"%>
+<%@page import="java.util.HashMap"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<%
+    LibroDAOImpl lDao = new LibroDAOImpl();
+
+    Map<Integer, String> mapAutores = new HashMap<>();
+    for (String[] a : lDao.listarAutores()) {
+        mapAutores.put(Integer.parseInt(a[0]), a[1]);
+    }
+
+    Map<Integer, String> mapCategorias = new HashMap<>();
+    for (String[] c : lDao.listarCategorias()) {
+        mapCategorias.put(Integer.parseInt(c[0]), c[1]);
+    }
+
+    Map<Integer, String> mapEditoriales = new HashMap<>();
+    for (String[] e : lDao.listarEditoriales()) {
+        mapEditoriales.put(Integer.parseInt(e[0]), e[1]);
+    }
+
+    List<Libro> librosPopulares = new ArrayList<>();
+    try {
+        Connection con = Conexion.conectar();
+        String sqlTop = "SELECT l.id_libro, COUNT(p.id_prestamo) as total_prestamos "
+                + "FROM libros l "
+                + "JOIN prestamos p ON l.id_libro = p.id_libro "
+                + "GROUP BY l.id_libro "
+                + "ORDER BY total_prestamos DESC LIMIT 4";
+        PreparedStatement ps = con.prepareStatement(sqlTop);
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+
+            Libro lib = lDao.buscarPorId(rs.getInt("id_libro"));
+            if (lib != null) {
+                librosPopulares.add(lib);
+            }
+        }
+        rs.close();
+        ps.close();
+        con.close();
+    } catch (Exception e) {
+        System.out.println("Error cargando libros populares: " + e.getMessage());
+    }
+%>
+
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -29,15 +84,19 @@
                 --nav-bg: rgba(255, 255, 255, 0.85);
                 --card-bg: #ffffff;
                 --text-main: #121212;
+                --border-color: rgba(0,0,0,0.1);
+                --soft-gray: rgba(125, 125, 125, 0.08);
                 --transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
-            /* Variables para Modo Oscuro */
+
             body.dark-mode {
                 --apple-bg: #0a0a0a;
                 --nav-bg: rgba(10, 10, 10, 0.9);
                 --card-bg: #1a1a1a;
                 --text-main: #f8f9fa;
+                --border-color: rgba(255,255,255,0.1);
+                --soft-gray: rgba(255, 255, 255, 0.05);
             }
 
             body.dark-mode .text-dark {
@@ -53,7 +112,6 @@
                 overflow-x: hidden;
             }
 
-            /* --- ANIMACIONES DE REVELACIÓN --- */
             .reveal {
                 opacity: 0;
                 transform: translateY(40px);
@@ -73,7 +131,6 @@
                 transition-delay: 0.6s;
             }
 
-            /* --- HERO SECTION TIPO CHENG --- */
             .hero {
                 min-height: 85vh;
                 display: flex;
@@ -110,7 +167,7 @@
                 display: inline-block;
             }
 
-            /* --- APPLE CARDS (MODULOS) --- */
+
             .apple-card {
                 background: var(--card-bg);
                 border-radius: 2.5rem;
@@ -143,6 +200,7 @@
             .apple-card:hover {
                 transform: translateY(-10px);
                 box-shadow: 0 25px 50px rgba(0,0,0,0.1);
+                color: var(--text-main);
             }
 
             .apple-card:hover::before {
@@ -182,6 +240,48 @@
                 box-shadow: 0 10px 20px rgba(255, 59, 48, 0.25);
             }
 
+
+            .btn-apple-outline {
+                background: transparent;
+                color: var(--text-main);
+                border: 1px solid var(--border-color);
+                border-radius: 16px;
+                padding: 10px 20px;
+                font-weight: 600;
+                transition: 0.2s;
+                text-decoration: none;
+                display: block;
+                text-align: center;
+            }
+            .btn-apple-outline:hover {
+                background: var(--soft-gray);
+                color: var(--text-main);
+            }
+
+            .info-label {
+                font-size: 0.72rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                opacity: 0.6;
+                margin-bottom: 6px;
+                display: block;
+            }
+
+            .modal-backdrop {
+                z-index: 1040 !important;
+            }
+            .modal {
+                z-index: 1060 !important;
+            }
+            .modal-content {
+                background-color: var(--card-bg) !important;
+                color: var(--text-main) !important;
+                border: 1px solid var(--border-color);
+                border-radius: 32px;
+                overflow: hidden;
+            }
+
             footer {
                 background: var(--card-bg);
                 padding: 60px 0;
@@ -219,14 +319,53 @@
         </section>
 
         <main id="modulos" class="container py-5">
+
+
+            <% if (!librosPopulares.isEmpty()) { %>
+            <section class="mb-5 pb-5" style="border-bottom: 1px solid var(--border-color);">
+                <div class="text-center mb-5 reveal">
+                    <h2 class="display-6 fw-bold"><i class="bi bi-fire text-danger me-2"></i>Libros Más Populares</h2>
+                    <p class="opacity-50 fs-5">Los títulos favoritos y más solicitados de nuestra comunidad.</p>
+                </div>
+
+                <div class="row g-4 justify-content-center">
+                    <% for (Libro b : librosPopulares) { %>
+                    <div class="col-lg-3 col-md-6 col-sm-6 reveal delay-1">
+                        <div class="apple-card p-4 text-center h-100 d-flex flex-column align-items-center" style="border-radius: 1.5rem;">
+
+                            <%-- Portada del Libro --%>
+                            <div class="mb-3" style="width: 140px; height: 210px; overflow:hidden; border-radius:12px; border: 1px solid var(--border-color); box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
+                                <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) {%>
+                                <img src="LibroServlet?accion=verImagen&id=<%=b.getIdLibro()%>" class="w-100 h-100" style="object-fit:cover;" alt="Portada">
+                                <% } else { %>
+                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-secondary bg-opacity-10">
+                                    <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                    <span class="small opacity-50" style="font-size: 0.7rem;">Sin Portada</span>
+                                </div>
+                                <% }%>
+                            </div>
+
+                            <h5 class="fw-bold mb-1 text-truncate w-100 px-2" title="<%= b.getTitulo()%>"><%= b.getTitulo()%></h5>
+                            <p class="small opacity-50 mb-4 text-truncate w-100"><i class="bi bi-pen-fill me-1"></i><%= mapAutores.getOrDefault(b.getIdAutor(), "Desconocido")%></p>
+
+                            <button class="btn-apple-outline w-100 mt-auto py-2" data-bs-toggle="modal" data-bs-target="#modalDetalle<%=b.getIdLibro()%>">
+                                <i class="bi bi-eye me-2"></i>Ver Detalles
+                            </button>
+                        </div>
+                    </div>
+                    <% } %>
+                </div>
+            </section>
+            <% } %>
+
+
             <div class="text-center mb-5 reveal">
                 <h2 class="display-5 fw-bold">Centro de Control</h2>
                 <p class="opacity-50 fs-5">Selecciona el área que deseas administrar o consultar.</p>
             </div>
 
-            <div class="row g-4 justify-content-center">
+            <div class="row g-4 justify-content-center mb-5">
 
-                <%-- MODULO DE LIBROS --%>
                 <div class="col-lg-4 col-md-6 reveal delay-1">
                     <a href="libro.jsp" class="apple-card">
                         <div>
@@ -248,7 +387,7 @@
                     </a>
                 </div>
 
-                <%-- MODULO DE USUARIOS: Solo visible para Docentes --%>
+
                 <% if (rol.equals("Docente")) { %>
                 <div class="col-lg-4 col-md-6 reveal delay-2">
                     <a href="Usuarios.jsp" class="apple-card">
@@ -268,7 +407,6 @@
                 </div>
                 <% } %>
 
-                <%-- MODULO DE PRESTAMOS --%>
                 <div class="col-lg-4 col-md-6 reveal delay-3">
                     <a href="Prestamos.jsp" class="apple-card">
                         <div>
@@ -290,7 +428,6 @@
                     </a>
                 </div>
 
-                <%-- MODULO DE QUEJAS Y SUGERENCIAS (Dinámico por Rol) --%>
                 <div class="col-lg-4 col-md-6 reveal delay-1">
                     <a href="quejas.jsp" class="apple-card">
                         <div>
@@ -315,8 +452,8 @@
                         </div>
                     </a>
                 </div>
-
             </div>
+
         </main>
 
         <footer>
@@ -329,10 +466,79 @@
             </div>
         </footer>
 
+        <% if (librosPopulares != null && !librosPopulares.isEmpty()) {
+                for (Libro b : librosPopulares) {%>
+        <div class="modal fade" id="modalDetalle<%= b.getIdLibro()%>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-body p-5">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-book-half fs-1"></i>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <div class="row align-items-center">
+
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
+                                    <% if (b.getUrlImg() != null && !b.getUrlImg().isEmpty()) {%>
+                                    <img src="LibroServlet?accion=verImagen&id=<%= b.getIdLibro()%>" class="w-100 h-100" style="object-fit: cover; border-radius: 8px;" alt="Portada">
+                                    <% } else { %>
+                                    <i class="bi bi-image text-muted fs-1 mb-2"></i>
+                                    <span class="small opacity-50">Sin Portada</span>
+                                    <% }%>
+                                </div>
+                            </div>
+
+
+                            <div class="col-md-8">
+                                <h3 class="fw-bold mb-1"><%= b.getTitulo()%></h3>
+                                <p class="small opacity-50 mb-4">ISBN: <%= b.getIsbn()%></p>
+
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Autor</p>
+                                        <p class="fw-bold mb-0"><%= mapAutores.getOrDefault(b.getIdAutor(), "Desconocido")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Categoría</p>
+                                        <p class="fw-bold mb-0" style="color: var(--brand-red);"><%= mapCategorias.getOrDefault(b.getIdCategoria(), "Sin Categoría")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Editorial</p>
+                                        <p class="fw-bold mb-0"><%= mapEditoriales.getOrDefault(b.getIdEditorial(), "N/A")%></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="info-label mb-1">Stock Disponible</p>
+                                        <p class="fw-bold mb-0 <%= b.getDisponible() > 0 ? "text-success" : "text-danger"%>"><%= b.getDisponible()%> unidades</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" style="border-color: var(--border-color);">
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                            <% if (b.getUrlPdf() != null && !b.getUrlPdf().isEmpty()) {%>
+                            <a href="LibroServlet?accion=descargar&id=<%= b.getIdLibro()%>" class="btn-red-custom" style="padding: 10px 25px;">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF
+                            </a>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }
+            }%>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
         <script>
-            // Lógica restaurada para escuchar el botón del navbar y aplicar el modo claro/oscuro
+
             const body = document.body;
 
             function applyTheme(isDark) {
@@ -348,16 +554,15 @@
                 }
             }
 
-            // Verificar Storage al cargar la página
             if (localStorage.getItem('theme') === 'light') {
                 applyTheme(false);
             } else {
-                applyTheme(true); // Default es oscuro
+                applyTheme(true);
             }
 
-            // Delegación de eventos para capturar el clic aunque el botón esté en el navbar.jsp
+
             document.addEventListener('click', function (e) {
-                // Busca si se hizo clic en el botón de tema o en su icono
+
                 const target = e.target.closest('#theme-toggle, #theme-toggle-mobile');
                 if (target) {
                     const isNowDark = !body.classList.contains('dark-mode');
@@ -366,7 +571,7 @@
                 }
             });
 
-            // Lógica de Animaciones Reveal al hacer Scroll
+
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {

@@ -4,17 +4,13 @@ import co.edu.uniboyaca.biblioteca.dao.QuejaDAO;
 import co.edu.uniboyaca.biblioteca.dao.QuejaDAOImpl;
 import co.edu.uniboyaca.biblioteca.model.Queja;
 import java.io.IOException;
-// CAMBIO CLAVE: De jakarta a javax para compatibilidad con Tomcat 8.5
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-/**
- * Servlet para gestionar el ciclo de vida de las PQRS.
- * URL física: /ProcesarQuejaServlet
- */
 @WebServlet(name = "ProcesarQuejaServlet", urlPatterns = {"/ProcesarQuejaServlet"})
 public class ProcesarQuejaServlet extends HttpServlet {
 
@@ -34,16 +30,16 @@ public class ProcesarQuejaServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         request.setCharacterEncoding("UTF-8");
         String accion = request.getParameter("accion");
-        
+
         try {
             if ("responder".equals(accion)) {
                 int idQueja = Integer.parseInt(request.getParameter("idQueja"));
                 String respuestaTexto = request.getParameter("respuesta");
                 boolean exito = quejaDAO.responderQueja(idQueja, respuestaTexto);
-                
+
                 if (exito) {
                     request.setAttribute("mensaje", "Respuesta enviada con éxito al radicado #" + idQueja);
                 } else {
@@ -51,7 +47,7 @@ public class ProcesarQuejaServlet extends HttpServlet {
                 }
             } else {
                 String nombre = request.getParameter("nombreSolicitante");
-                String correo = request.getParameter("correoSolicitante"); 
+                String correo = request.getParameter("correoSolicitante");
                 String tipo = request.getParameter("tipoSolicitud");
                 String asunto = request.getParameter("asunto");
                 String descripcion = request.getParameter("descripcion");

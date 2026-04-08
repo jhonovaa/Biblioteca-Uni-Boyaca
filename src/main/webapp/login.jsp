@@ -22,7 +22,6 @@
                 --glass-border: rgba(125, 125, 125, 0.2);
             }
 
-            /* --- SOPORTE MODO OSCURO --- */
             body.dark-mode {
                 --apple-bg: #0a0a0a;
                 --card-bg: rgba(26, 26, 26, 0.85);
@@ -45,13 +44,13 @@
                 overflow: hidden;
             }
 
-            /* --- CLASE DE CONTRASTE ADAPTATIVO --- */
+
             .text-adaptive {
                 color: var(--text-main) !important;
                 opacity: 0.7;
             }
 
-            /* --- ANIMACIONES --- */
+
             @keyframes fadeInUp {
                 from {
                     opacity: 0;
@@ -179,8 +178,6 @@
                 font-size: 16px;
                 transition: all 0.3s;
             }
-
-            /* Corrección para el autocompletado de los navegadores (Evita que el texto se ponga negro en modo oscuro) */
             input:-webkit-autofill,
             input:-webkit-autofill:hover,
             input:-webkit-autofill:focus,
@@ -293,7 +290,7 @@
                     <h3 class="animate-item">Acceso</h3>
                     <p class="small mb-4 animate-item delay-1 text-adaptive">Ingresa tus credenciales institucionales.</p>
 
-                    <%-- Manejo de Errores Original --%>
+
                     <% if (request.getAttribute("error") != null) {%>
                     <div class="alert alert-danger border-0 py-2 small animate-item" style="border-radius:15px; background: rgba(255, 59, 48, 0.1); color: var(--brand-red);">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= request.getAttribute("error")%>

@@ -23,7 +23,7 @@ public class Queja {
         this.tipoSolicitud = tipoSolicitud;
         this.asunto = asunto;
         this.descripcion = descripcion;
-        this.estado = "Pendiente"; // Estado por defecto
+        this.estado = "Pendiente";
     }
 
     public int getId() {

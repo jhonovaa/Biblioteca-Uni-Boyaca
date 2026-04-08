@@ -15,8 +15,7 @@ public class MultaController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        // Verificamos que solo el Docente pueda acceder a esta ruta por seguridad
+
         HttpSession sesion = request.getSession();
         String rol = (String) sesion.getAttribute("tipoUsuario");
 
@@ -30,12 +29,11 @@ public class MultaController extends HttpServlet {
 
         try {
             if ("crear".equals(accion)) {
-                // Capturamos los datos enviados por la funcion JS sancionar()
+
                 int idPrestamo = Integer.parseInt(request.getParameter("idP"));
                 int idUsuario = Integer.parseInt(request.getParameter("idU"));
                 double monto = Double.parseDouble(request.getParameter("monto"));
 
-                // Ejecutamos la insercion en la tabla multas (estado_pago inicia en 0)
                 boolean exito = pDao.generarMulta(idPrestamo, idUsuario, monto);
 
                 if (exito) {
@@ -45,10 +43,9 @@ public class MultaController extends HttpServlet {
                 }
 
             } else if ("pagar".equals(accion)) {
-                // Capturamos el ID del prestamo para marcar la multa como pagada
+
                 int idPrestamo = Integer.parseInt(request.getParameter("idP"));
 
-                // Ejecutamos el UPDATE en la tabla multas (estado_pago pasa a 1)
                 boolean exito = pDao.pagarMulta(idPrestamo);
 
                 if (exito) {
@@ -57,7 +54,7 @@ public class MultaController extends HttpServlet {
                     response.sendRedirect("Prestamos.jsp?msj=error_pago");
                 }
             } else {
-                // Si no hay una accion valida, regresamos a la lista
+
                 response.sendRedirect("Prestamos.jsp");
             }
 
