@@ -1,11 +1,10 @@
 package co.edu.uniboyaca.biblioteca.controller;
 
-import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
-import co.edu.uniboyaca.biblioteca.model.Libro;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -14,15 +13,19 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
+import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
+import co.edu.uniboyaca.biblioteca.model.Libro;
+
 @WebServlet(name = "LibroServlet", urlPatterns = {"/LibroServlet"})
 @MultipartConfig(
-        fileSizeThreshold = 1024 * 1024 * 2,
-        maxFileSize = 1024 * 1024 * 10,
-        maxRequestSize = 1024 * 1024 * 50
+    fileSizeThreshold = 1024 * 1024 * 2,  // 2 MB: Tamaño a partir del cual se escribe en disco
+    maxFileSize = 1024 * 1024 * 50,       // 50 MB: Tamaño máximo de UN solo archivo
+    maxRequestSize = 1024 * 1024 * 100    // 100 MB: Tamaño máximo de la petición completa
 )
+
 public class LibroServlet extends HttpServlet {
 //para funcionar cambiar unibiacion donde se encutra la carpeta raiz del proyecto 
-    private static final String UPLOAD_DIR = "C:\\Users\\angel\\OneDrive\\Desktop\\jabones y git\\Biblioteca-Uni-Boyaca\\biblioteca_uploads";
+    private static final String UPLOAD_DIR = "C:\\Users\\salaz\\Desktop\\Java\\bibliotecaUniboyaca\\biblioteca_uploads";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
