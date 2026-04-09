@@ -60,7 +60,7 @@
         ps.close();
         con.close();
     } catch (Exception e) {
-        System.out.println("Error cargando libros populares: " + e.getMessage());
+        e.printStackTrace();
     }
 %>
 

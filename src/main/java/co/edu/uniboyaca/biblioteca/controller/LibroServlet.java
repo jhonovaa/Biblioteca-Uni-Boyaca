@@ -1,11 +1,10 @@
 package co.edu.uniboyaca.biblioteca.controller;
 
-import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
-import co.edu.uniboyaca.biblioteca.model.Libro;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -14,15 +13,22 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
+import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
+import co.edu.uniboyaca.biblioteca.model.Libro;
+
 @WebServlet(name = "LibroServlet", urlPatterns = {"/LibroServlet"})
 @MultipartConfig(
-        fileSizeThreshold = 1024 * 1024 * 2,
-        maxFileSize = 1024 * 1024 * 10,
-        maxRequestSize = 1024 * 1024 * 50
+    fileSizeThreshold = 1024 * 1024 * 2,  // 2 MB
+    maxFileSize = 1024 * 1024 * 50,       // 50 MB
+    maxRequestSize = 1024 * 1024 * 100    // 100 MB
 )
 public class LibroServlet extends HttpServlet {
-//para funcionar cambiar unibiacion donde se encutra la carpeta raiz del proyecto 
-    private static final String UPLOAD_DIR = "C:\\Users\\angel\\OneDrive\\Desktop\\jabones y git\\Biblioteca-Uni-Boyaca\\biblioteca_uploads";
+
+    /**
+     * UPLOAD_DIR Dinámico: 
+     * Se guardará en la carpeta personal del usuario actual (C:\Users\NombreUsuario\biblioteca_uploads)
+     */
+    private static final String UPLOAD_DIR = System.getProperty("user.home") + File.separator + "biblioteca_uploads";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -138,11 +144,13 @@ public class LibroServlet extends HttpServlet {
                     libroAnterior = dao.buscarPorId(id);
                 }
 
+                // Crear el directorio de subida si no existe en el equipo actual
                 File uploadDir = new File(UPLOAD_DIR);
                 if (!uploadDir.exists()) {
                     uploadDir.mkdirs();
                 }
 
+                // Procesar PDF
                 Part filePdfPart = request.getPart("filePdf");
                 String pdfName = getFileName(filePdfPart);
                 if (pdfName != null && !pdfName.isEmpty()) {
@@ -153,6 +161,7 @@ public class LibroServlet extends HttpServlet {
                     l.setUrlPdf(libroAnterior.getUrlPdf());
                 }
 
+                // Procesar Imagen
                 Part fileImgPart = request.getPart("fileImg");
                 String imgName = getFileName(fileImgPart);
                 if (imgName != null && !imgName.isEmpty()) {
