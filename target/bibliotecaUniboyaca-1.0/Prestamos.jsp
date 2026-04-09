@@ -11,7 +11,6 @@
 <%@page import="java.util.List"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%
-
     if (session.getAttribute("nombreUsuario") == null) {
         response.sendRedirect("login.jsp");
         return;
@@ -25,6 +24,16 @@
     LibroDAOImpl lDao = new LibroDAOImpl();
 
     List<Prestamos> listaP = pDao.listarPrestamos();
+
+    // Nueva validación de bloqueo por multas
+    boolean estaBloqueado = false;
+    String msgMulta = null;
+    if (rol.equals("Estudiante")) {
+        msgMulta = pDao.obtenerNotificacionMulta(idUsuarioLogueado);
+        if (msgMulta != null) {
+            estaBloqueado = true;
+        }
+    }
 %>
 <!DOCTYPE html>
 <html lang="es">
@@ -71,12 +80,33 @@
                 min-height: 100vh;
             }
 
-            .modal-backdrop {
-                z-index: 1040 !important;
+            /* --- ESTILOS DE BLOQUEO --- */
+            .body-locked {
+                overflow: hidden !important;
             }
-            .modal {
-                z-index: 1060 !important;
+
+            .global-blocker {
+                position: fixed;
+                top: 70px; /* Ajustar según la altura de tu navbar */
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 70px);
+                background: rgba(0,0,0,0.5);
+                backdrop-filter: blur(10px);
+                z-index: 999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: all;
             }
+
+            /* Asegurar que el navbar esté sobre el bloqueo */
+            .navbar {
+                z-index: 1000 !important;
+            }
+
+            .modal-backdrop { z-index: 1040 !important; }
+            .modal { z-index: 1060 !important; }
             .modal-content {
                 background-color: var(--card-bg) !important;
                 color: var(--text-main) !important;
@@ -101,7 +131,6 @@
                 opacity: 0.5;
                 margin-bottom: 6px;
             }
-
 
             .table-custom {
                 width: 100%;
@@ -136,17 +165,6 @@
                 border-color: var(--brand-red);
                 box-shadow: 0 0 0 0.25rem rgba(255, 59, 48, 0.25);
             }
-            .dark-mode select.form-control-apple option {
-                background-color: #1c1c1e !important;
-                color: #f5f5f7 !important;
-            }
-
-            .dark-mode .form-control-apple::placeholder {
-                color: rgba(245, 245, 247, 0.4) !important;
-            }
-            .dark-mode .text-muted {
-                color: rgba(245, 245, 247, 0.5) !important;
-            }
 
             .btn-apple-red {
                 background: var(--brand-red);
@@ -172,91 +190,34 @@
                 font-weight: 600;
                 transition: 0.2s;
             }
-            .btn-export:hover {
-                background: var(--text-main);
-                color: var(--apple-bg);
-            }
 
+            .btn-action-primary { background: rgba(0, 122, 255, 0.1); color: var(--brand-blue); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+            .btn-action-success { background: rgba(52, 199, 89, 0.1); color: var(--accent-green); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+            .btn-action-warning { background: rgba(255, 159, 10, 0.1); color: #ff9f0a; border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+            .btn-action-danger { background: rgba(255, 59, 48, 0.1); color: var(--brand-red); border: none; border-radius: 10px; padding: 6px 12px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
 
-            .btn-action-primary {
-                background: rgba(0, 122, 255, 0.1);
-                color: var(--brand-blue);
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-action-primary:hover {
-                background: var(--brand-blue);
-                color: white;
-            }
-
-            .btn-action-success {
-                background: rgba(52, 199, 89, 0.1);
-                color: var(--accent-green);
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-action-success:hover {
-                background: var(--accent-green);
-                color: white;
-            }
-
-            .btn-action-warning {
-                background: rgba(255, 159, 10, 0.1);
-                color: #ff9f0a;
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-action-warning:hover {
-                background: #ff9f0a;
-                color: white;
-            }
-
-            .btn-action-danger {
-                background: rgba(255, 59, 48, 0.1);
-                color: var(--brand-red);
-                border: none;
-                border-radius: 10px;
-                padding: 6px 12px;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: 0.2s;
-            }
-            .btn-action-danger:hover {
-                background: var(--brand-red);
-                color: white;
-            }
-            
-            .swal2-popup {
-                border-radius: 24px !important;
-                border: 1px solid var(--border-color) !important;
-            }
-
-            .reveal {
-                opacity: 0;
-                transform: translateY(20px);
-                transition: 0.5s ease;
-            }
-            .reveal.active {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            .reveal { opacity: 0; transform: translateY(20px); transition: 0.5s ease; }
+            .reveal.active { opacity: 1; transform: translateY(0); }
         </style>
     </head>
-    <body class="dark-mode">
+    <body class="dark-mode <%= estaBloqueado ? "body-locked" : "" %>">
 
         <%@include file="includes/navbar.jsp" %>
+
+        <% if (estaBloqueado) { %>
+            <div class="global-blocker">
+                <div class="glass-panel text-center shadow-lg" style="max-width: 500px; border: 2px solid var(--brand-red);">
+                    <i class="bi bi-shield-exclamation text-danger mb-3" style="font-size: 5rem;"></i>
+                    <h2 class="fw-bold text-danger">Acceso Restringido</h2>
+                    <p class="fs-5 mb-4 opacity-75">Tu cuenta tiene una sanción económica pendiente. Debes ponerte al día para habilitar el sistema.</p>
+                    <div class="p-4 rounded-4 bg-danger bg-opacity-10 border border-danger border-opacity-10 text-start mb-4">
+                        <p class="small fw-bold text-danger mb-1 text-uppercase">Motivo del bloqueo:</p>
+                        <p class="mb-0 text-main"><%= msgMulta %></p>
+                    </div>
+                    <p class="small text-muted">Usa el menú superior si deseas cerrar sesión.</p>
+                </div>
+            </div>
+        <% } %>
 
         <div class="container py-5">
             <header class="text-center mb-5 reveal active">
@@ -312,8 +273,7 @@
                 </div>
                 <% }%>
 
-
-                <div class="<%= rol.equals("Docente") ? "col-12" : "col-lg-8"%>">
+                <div class="<%= (rol.equals("Docente") || !rol.equals("Estudiante")) ? "col-12" : "col-lg-8"%>">
                     <div class="glass-panel reveal active delay-1 h-100">
 
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
@@ -348,9 +308,9 @@
                                     %>
                                     <tr><td colspan="5" class="text-center py-5 opacity-50">No hay registros en el sistema.</td></tr>
                                     <%
-                                    } else {
-                                        for (Prestamos p : listaP) {
-                                            if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
+                                        } else {
+                                            for (Prestamos p : listaP) {
+                                                if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
                                     %>
                                     <tr>
                                         <td>
@@ -368,16 +328,15 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex justify-content-center gap-2">
-
                                                 <% if (rol.equals("Docente") && p.getEstado().equals("Activo")) {%>
                                                 <a href="PrestamoController?accion=devolver&idP=<%= p.getIdPrestamo()%>" class="btn-action-primary text-decoration-none" title="Devolver Libro"><i class="bi bi-arrow-return-left"></i></a>
 
                                                 <% if (pDao.tieneMultaPendiente(p.getIdPrestamo())) {%>
                                                 <a href="MultaController?accion=pagar&idP=<%= p.getIdPrestamo()%>" class="btn-action-success text-decoration-none" title="Saldar Multa"><i class="bi bi-cash-stack"></i></a>
-                                                    <% } else {%>
+                                                <% } else {%>
                                                 <button class="btn-action-warning" onclick="sancionar(<%= p.getIdPrestamo()%>, <%= p.getIdUsuario()%>)" title="Generar Multa"><i class="bi bi-exclamation-triangle"></i></button>
-                                                    <% } %>
-                                                    <% }%>
+                                                <% } %>
+                                                <% }%>
 
                                                 <button class="btn-export border-0" data-bs-toggle="modal" data-bs-target="#modalDetalle<%= p.getIdPrestamo()%>" title="Ver Detalles">
                                                     <i class="bi bi-eye" style="color: var(--brand-red);"></i>
@@ -406,9 +365,7 @@
             if (listaP != null) {
                 for (Prestamos p : listaP) {
                     if (rol.equals("Docente") || p.getIdUsuario() == idUsuarioLogueado) {
-
                         Libro libroModal = lDao.buscarPorId(p.getIdLibro());
-
                         double montoMulta = 0;
                         boolean multaPagada = false;
                         try {
@@ -420,30 +377,22 @@
                                 montoMulta = rsM.getDouble("monto");
                                 multaPagada = rsM.getInt("estado_pago") == 1;
                             }
-                            rsM.close();
-                            psM.close();
-                            conM.close();
-                        } catch (Exception e) {
-                        }
-
+                            rsM.close(); psM.close(); conM.close();
+                        } catch (Exception e) {}
                         boolean mostrarRecibo = p.getEstado().equals("Devuelto") && (montoMulta == 0 || multaPagada);
-
                         String fechaReferencia = (p.getFechaDevolucionReal() != null) ? p.getFechaDevolucionReal().toString() : "N/A";
         %>
         <div class="modal fade" id="modalDetalle<%= p.getIdPrestamo()%>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content shadow-lg border-0">
                     <div class="modal-body p-5">
-
                         <div class="d-flex justify-content-between align-items-start mb-4">
                             <div class="d-inline-block p-3 rounded-circle bg-danger bg-opacity-10 text-danger">
                                 <i class="bi bi-journal-bookmark-fill fs-1"></i>
                             </div>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-
                         <div class="row align-items-center mb-4">
-
                             <div class="col-md-4 text-center mb-4 mb-md-0">
                                 <div class="p-3 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center" style="background: var(--soft-gray); border: 1px dashed var(--border-color); min-height: 200px; overflow: hidden;">
                                     <% if (libroModal != null && libroModal.getUrlImg() != null && !libroModal.getUrlImg().isEmpty()) {%>
@@ -454,11 +403,9 @@
                                     <% }%>
                                 </div>
                             </div>
-
                             <div class="col-md-8">
                                 <h3 class="fw-bold mb-1">Detalle del Préstamo</h3>
                                 <p class="small opacity-50 mb-3">Registro Oficial #<%= p.getIdPrestamo()%></p>
-
                                 <div class="p-3 rounded-4" style="background: var(--soft-gray); border: 1px solid var(--border-color);">
                                     <div class="row g-3">
                                         <div class="col-12">
@@ -513,7 +460,6 @@
 
                         <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
                             <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
-
                             <% if (mostrarRecibo) {%>
                             <button type="button" class="btn btn-outline-success rounded-pill px-4 fw-bold" onclick="generarRecibo(<%= p.getIdPrestamo()%>, '<%= p.getNombreUsuario()%>', '<%= p.getTituloLibro().replace("'", "\\'")%>', <%= montoMulta%>, '<%= fechaReferencia%>')">
                                 <i class="bi bi-receipt me-2"></i>Descargar Recibo / Paz y Salvo
@@ -534,259 +480,145 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
 
         <script>
-                                function filtrarPrestamos() {
-                                    let input = document.getElementById("buscadorPrestamos").value.toLowerCase();
-                                    let filas = document.querySelectorAll("#tablaPrestamos tbody tr");
+            function filtrarPrestamos() {
+                let input = document.getElementById("buscadorPrestamos").value.toLowerCase();
+                let filas = document.querySelectorAll("#tablaPrestamos tbody tr");
+                filas.forEach(fila => {
+                    if (fila.cells.length === 1) return;
+                    let textoFila = fila.innerText.toLowerCase();
+                    fila.style.display = textoFila.includes(input) ? "" : "none";
+                });
+            }
 
-                                    filas.forEach(fila => {
-                                        if (fila.cells.length === 1)
-                                            return;
-                                        let textoFila = fila.innerText.toLowerCase();
-                                        fila.style.display = textoFila.includes(input) ? "" : "none";
-                                    });
-                                }
+            function actualizarPortada() {
+                const select = document.getElementById('select_libro');
+                const option = select.options[select.selectedIndex];
+                const container = document.getElementById('preview-container');
+                const wrapper = document.getElementById('preview-wrapper');
+                if (!option.value) { container.classList.add('d-none'); return; }
+                container.classList.remove('d-none');
+                const hasImg = option.getAttribute('data-hasimg') === 'true';
+                if (hasImg) {
+                    wrapper.innerHTML = '<img src="LibroServlet?accion=verImagen&id=' + option.value + '" style="height: 180px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" alt="Portada">';
+                } else {
+                    wrapper.innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100"><i class="bi bi-image text-muted fs-1 mb-2"></i><span class="small opacity-50">Sin Portada</span></div>';
+                }
+            }
 
-                                function actualizarPortada() {
-                                    const select = document.getElementById('select_libro');
-                                    const option = select.options[select.selectedIndex];
-                                    const container = document.getElementById('preview-container');
-                                    const wrapper = document.getElementById('preview-wrapper');
+            function generarRecibo(id, usuario, libro, montoMulta, fechaReferencia) {
+                const {jsPDF} = window.jspdf;
+                const doc = new jsPDF('p', 'pt', 'a5');
+                doc.setDrawColor(200, 200, 200);
+                doc.roundedRect(20, 20, 380, 500, 10, 10);
+                doc.setFontSize(18);
+                doc.setTextColor(255, 59, 48);
+                doc.text("UNIBOYACA - BIBLIOTECA", 210, 60, null, null, "center");
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text("SISTEMA DE GESTIÓN DE PRÉSTAMOS", 210, 80, null, null, "center");
+                doc.line(40, 100, 380, 100);
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "bold");
+                doc.text("CERTIFICADO DE PAZ Y SALVO / RECIBO", 210, 130, null, null, "center");
+                const fechaActual = new Date().toLocaleDateString();
+                const horaActual = new Date().toLocaleTimeString();
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "normal");
+                doc.text("No. de Transacción: TX-000" + id, 50, 180);
+                doc.text("Fecha de Emisión: " + fechaActual + " - " + horaActual, 50, 210);
+                doc.text("Usuario a Cargo: " + usuario, 50, 240);
+                doc.line(50, 260, 370, 260);
+                doc.text("Libro Asociado:", 50, 290);
+                const splitLibro = doc.splitTextToSize(libro, 170);
+                doc.setFont("helvetica", "bold");
+                doc.text(splitLibro, 200, 290);
+                doc.setFont("helvetica", "normal");
+                if (montoMulta > 0) {
+                    doc.text("Concepto: Pago de Multa", 50, 340);
+                    doc.text("Valor Pagado: $" + montoMulta + " COP", 50, 370);
+                    doc.text("Fecha de Pago: " + fechaReferencia, 50, 400);
+                } else {
+                    doc.text("Concepto: Paz y Salvo", 50, 340);
+                    doc.text("Fecha de Devolución: " + fechaReferencia, 50, 370);
+                }
+                doc.setTextColor(52, 199, 89);
+                doc.setFont("helvetica", "bold");
+                doc.text("ESTADO: PAGADO / SIN DEUDAS", 210, 440, null, null, "center");
+                doc.save("Recibo_Pago_TX000" + id + ".pdf");
+            }
 
-                                    if (!option.value) {
-                                        container.classList.add('d-none');
-                                        return;
-                                    }
+            function exportarExcel() {
+                const table = document.getElementById("tablaPrestamos");
+                const wb = XLSX.utils.table_to_book(table, {sheet: "Prestamos"});
+                XLSX.writeFile(wb, "Reporte_Prestamos_Uniboyaca.xlsx");
+            }
 
-                                    container.classList.remove('d-none');
-                                    const hasImg = option.getAttribute('data-hasimg') === 'true';
+            function exportarPDF() {
+                const {jsPDF} = window.jspdf;
+                const doc = new jsPDF('p', 'pt', 'a4');
+                doc.setFontSize(18);
+                doc.setTextColor(255, 59, 48);
+                doc.text("UNIBOYACA - REPORTE DE PRÉSTAMOS", 40, 40);
+                doc.autoTable({ html: '#tablaPrestamos', startY: 60, theme: 'grid', headStyles: {fillColor: [255, 59, 48]}, styles: {fontSize: 9} });
+                doc.save("Reporte_Prestamos.pdf");
+            }
 
-                                    if (hasImg) {
-                                        wrapper.innerHTML = '<img src="LibroServlet?accion=verImagen&id=' + option.value + '" style="height: 180px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" alt="Portada">';
-                                    } else {
-                                        wrapper.innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100"><i class="bi bi-image text-muted fs-1 mb-2"></i><span class="small opacity-50">Sin Portada</span></div>';
-                                    }
-                                }
+            function getSwalConfig() {
+                const isDark = document.body.classList.contains('dark-mode');
+                return { background: isDark ? '#1c1c1e' : '#ffffff', color: isDark ? '#f5f5f7' : '#121212', confirmButtonColor: '#ff3b30', cancelButtonColor: '#6c757d', customClass: {popup: 'swal2-popup'} };
+            }
 
-                                function generarRecibo(id, usuario, libro, montoMulta, fechaReferencia) {
-                                    const {jsPDF} = window.jspdf;
-                                    const doc = new jsPDF('p', 'pt', 'a5');
+            function sancionar(idPrestamo, idUsuario) {
+                const config = getSwalConfig();
+                Swal.fire({ ...config, title: 'Generar Sanción', text: "Monto de la multa (COP):", input: 'number', showCancelButton: true, confirmButtonText: 'Aplicar', cancelButtonText: 'Cancelar' })
+                .then((result) => { if (result.isConfirmed && result.value) { window.location.href = "MultaController?accion=crear&idP=" + idPrestamo + "&idU=" + idUsuario + "&monto=" + result.value; } });
+            }
 
-                                    doc.setDrawColor(200, 200, 200);
-                                    doc.roundedRect(20, 20, 380, 500, 10, 10);
+            function confirmarEliminar(idP) {
+                const config = getSwalConfig();
+                Swal.fire({ ...config, title: '¿Eliminar?', text: "Esta acción es permanente.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Eliminar' })
+                .then((result) => { if (result.isConfirmed) { window.location.href = "PrestamoController?accion=eliminar&idP=" + idP; } });
+            }
 
-                                    doc.setFontSize(18);
-                                    doc.setTextColor(255, 59, 48); // Rojo Uniboyaca
-                                    doc.text("UNIBOYACA - BIBLIOTECA", 210, 60, null, null, "center");
+            function applyTheme(isDark) {
+                if (isDark) document.body.classList.add('dark-mode');
+                else document.body.classList.remove('dark-mode');
+            }
 
-                                    doc.setFontSize(12);
-                                    doc.setTextColor(100, 100, 100);
-                                    doc.text("SISTEMA DE GESTIÓN DE PRÉSTAMOS", 210, 80, null, null, "center");
+            if (localStorage.getItem('theme') === 'light') applyTheme(false);
+            else applyTheme(true);
 
-                                    doc.line(40, 100, 380, 100);
+            document.addEventListener('click', function (e) {
+                const target = e.target.closest('#theme-toggle');
+                if (target) {
+                    const isNowDark = !document.body.classList.contains('dark-mode');
+                    localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+                    applyTheme(isNowDark);
+                }
+            });
 
-                                    doc.setFontSize(14);
-                                    doc.setTextColor(0, 0, 0);
-                                    doc.setFont("helvetica", "bold");
-                                    doc.text("CERTIFICADO DE PAZ Y SALVO / RECIBO", 210, 130, null, null, "center");
-
-                                    doc.setFontSize(11);
-                                    doc.setFont("helvetica", "normal");
-
-                                    const fechaActual = new Date().toLocaleDateString();
-                                    const horaActual = new Date().toLocaleTimeString();
-
-                                    doc.text("No. de Transacción:", 50, 180);
-                                    doc.text("TX-000" + id, 200, 180);
-                                    doc.text("Fecha de Emisión:", 50, 210);
-                                    doc.text(fechaActual + " - " + horaActual, 200, 210);
-                                    doc.text("Usuario a Cargo:", 50, 240);
-                                    doc.text(usuario, 200, 240);
-
-                                    doc.line(50, 260, 370, 260);
-
-                                    doc.text("Libro Asociado:", 50, 290);
-                                    doc.setFont("helvetica", "bold");
-
-                                    const splitLibro = doc.splitTextToSize(libro, 170);
-                                    doc.text(splitLibro, 200, 290);
-
-                                    doc.setFont("helvetica", "normal");
-
-                                    doc.text("Concepto:", 50, 340);
-                                    if (montoMulta > 0) {
-                                        doc.text("Pago de Multa por Retraso/Daño", 200, 340);
-                                        doc.text("Valor Pagado:", 50, 370);
-                                        doc.setFont("helvetica", "bold");
-                                        doc.text("$" + montoMulta + " COP", 200, 370);
-                                        doc.setFont("helvetica", "normal");
-                                        doc.text("Fecha de Pago:", 50, 400);
-                                        doc.text(fechaReferencia, 200, 400);
-                                    } else {
-                                        doc.text("Paz y Salvo - Devolución a tiempo", 200, 340);
-                                        doc.text("Fecha de Devolución:", 50, 370);
-                                        doc.text(fechaReferencia, 200, 370);
-                                    }
-
-                                    doc.setFontSize(12);
-                                    doc.setTextColor(52, 199, 89);
-                                    doc.setFont("helvetica", "bold");
-                                    doc.text("ESTADO: PAGADO / SIN DEUDAS", 210, 440, null, null, "center");
-
-                                    doc.setFontSize(9);
-                                    doc.setTextColor(150, 150, 150);
-                                    doc.setFont("helvetica", "normal");
-                                    doc.text("Este documento certifica electrónicamente que el usuario mencionado", 210, 480, null, null, "center");
-                                    doc.text("se encuentra a Paz y Salvo por concepto del material bibliográfico.", 210, 495, null, null, "center");
-
-                                    doc.save("Recibo_Pago_TX000" + id + ".pdf");
-                                }
-
-                                function exportarExcel() {
-                                    const table = document.getElementById("tablaPrestamos");
-                                    const wb = XLSX.utils.table_to_book(table, {sheet: "Prestamos"});
-                                    XLSX.writeFile(wb, "Reporte_Prestamos_Uniboyaca.xlsx");
-                                }
-
-                                function exportarPDF() {
-                                    const {jsPDF} = window.jspdf;
-                                    const doc = new jsPDF('p', 'pt', 'a4');
-                                    doc.setFontSize(18);
-                                    doc.setTextColor(255, 59, 48);
-                                    doc.text("UNIBOYACA - REPORTE DE PRÉSTAMOS", 40, 40);
-                                    doc.autoTable({
-                                        html: '#tablaPrestamos',
-                                        startY: 60,
-                                        theme: 'grid',
-                                        headStyles: {fillColor: [255, 59, 48]},
-                                        styles: {fontSize: 9}
-                                    });
-                                    doc.save("Reporte_Prestamos.pdf");
-                                }
-
-                                function getSwalConfig() {
-                                    const isDark = document.body.classList.contains('dark-mode');
-                                    return {
-                                        background: isDark ? '#1c1c1e' : '#ffffff',
-                                        color: isDark ? '#f5f5f7' : '#121212',
-                                        confirmButtonColor: '#ff3b30',
-                                        cancelButtonColor: '#6c757d',
-                                        customClass: {popup: 'swal2-popup'}
-                                    };
-                                }
-
-                                function sancionar(idPrestamo, idUsuario) {
-                                    const config = getSwalConfig();
-                                    Swal.fire({
-                                        ...config,
-                                        title: 'Generar Sanción',
-                                        text: "Ingrese el monto de la multa (COP):",
-                                        input: 'number',
-                                        inputAttributes: {min: 0, step: 1000},
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Aplicar Multa',
-                                        cancelButtonText: 'Cancelar'
-                                    }).then((result) => {
-                                        if (result.isConfirmed && result.value) {
-                                            window.location.href = "MultaController?accion=crear&idP=" + idPrestamo + "&idU=" + idUsuario + "&monto=" + result.value;
-                                        }
-                                    });
-                                }
-
-                                function confirmarEliminar(idP) {
-                                    const config = getSwalConfig();
-                                    Swal.fire({
-                                        ...config,
-                                        title: '¿Eliminar registro?',
-                                        text: "Esta acción es permanente y no se puede deshacer.",
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Sí, eliminar',
-                                        cancelButtonText: 'Cancelar'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            window.location.href = "PrestamoController?accion=eliminar&idP=" + idP;
-                                        }
-                                    });
-                                }
-
-                                const body = document.body;
-                                function applyTheme(isDark) {
-                                    if (isDark)
-                                        body.classList.add('dark-mode');
-                                    else
-                                        body.classList.remove('dark-mode');
-                                }
-
-                                if (localStorage.getItem('theme') === 'light')
-                                    applyTheme(false);
-                                else
-                                    applyTheme(true);
-
-                                document.addEventListener('click', function (e) {
-                                    const target = e.target.closest('#theme-toggle');
-                                    if (target) {
-                                        const isNowDark = !body.classList.contains('dark-mode');
-                                        localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
-                                        applyTheme(isNowDark);
-                                    }
-                                });
-
-                                const observer = new IntersectionObserver((entries) => {
-                                    entries.forEach(entry => {
-                                        if (entry.isIntersecting)
-                                            entry.target.classList.add('active');
-                                    });
-                                }, {threshold: 0.1});
-                                document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+            }, {threshold: 0.1});
+            document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
         </script>
 
         <% if ("devuelto_ok".equals(request.getParameter("msj"))) { %>
-        <script>
-            Swal.fire({...getSwalConfig(), title: '¡Devuelto!', text: 'El libro ha sido recibido.', icon: 'success'});
-        </script>
+        <script>Swal.fire({...getSwalConfig(), title: '¡Devuelto!', text: 'Recibido.', icon: 'success'});</script>
         <% } %>
         <% if ("multa_ok".equals(request.getParameter("msj"))) { %>
-        <script>
-            Swal.fire({...getSwalConfig(), title: 'Sanción Registrada', text: 'La multa se aplicó correctamente.', icon: 'warning'});
-        </script>
+        <script>Swal.fire({...getSwalConfig(), title: 'Sanción Aplicada', icon: 'warning'});</script>
         <% } %>
-
         <% if ("pago_ok".equals(request.getParameter("msj"))) { %>
-        <script>
-            Swal.fire({
-                ...getSwalConfig(),
-                title: '¡Pago Exitoso!',
-                text: 'El usuario ya no tiene deudas. Puedes descargar el recibo de Paz y Salvo abriendo los detalles del préstamo (ícono del ojo).',
-                icon: 'success'
-            });
-        </script>
+        <script>Swal.fire({...getSwalConfig(), title: '¡Pago Exitoso!', text: 'Usuario a paz y salvo.', icon: 'success'});</script>
         <% } %>
-
         <% if ("eliminado_ok".equals(request.getParameter("msj"))) { %>
-        <script>
-            Swal.fire({...getSwalConfig(), title: 'Eliminado', text: 'El registro ha sido borrado del sistema.', icon: 'success'});
-        </script>
+        <script>Swal.fire({...getSwalConfig(), title: 'Eliminado', icon: 'success'});</script>
         <% } %>
-
         <% if (request.getParameter("err") != null) {%>
-        <script>
-            Swal.fire({...getSwalConfig(), title: 'Error en el Servidor', text: 'El sistema no pudo procesar la solicitud (Código: <%= request.getParameter("err")%>).', icon: 'error'});
-        </script>
+        <script>Swal.fire({...getSwalConfig(), title: 'Error', text: 'Código: <%= request.getParameter("err")%>', icon: 'error'});</script>
         <% } %>
-
-        <% if (rol.equals("Estudiante")) {
-                String msgMulta = pDao.obtenerNotificacionMulta(idUsuarioLogueado);
-                if (msgMulta != null) {%>
-        <script>
-            Swal.fire({
-                ...getSwalConfig(),
-                icon: 'error',
-                title: 'Acceso Restringido',
-                text: '<%= msgMulta%>'
-            });
-        </script>
-        <% }
-            }%>
 
         <script type="text/javascript">
             var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
