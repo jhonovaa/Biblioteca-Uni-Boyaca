@@ -1,9 +1,13 @@
 package co.edu.uniboyaca.biblioteca.controller;
 
+import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
+import co.edu.uniboyaca.biblioteca.model.Libro;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Paths;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -13,188 +17,218 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 
-import co.edu.uniboyaca.biblioteca.dao.LibroDAOImpl;
-import co.edu.uniboyaca.biblioteca.model.Libro;
-
-@WebServlet(name = "LibroServlet", urlPatterns = {"/LibroServlet"})
-@MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 2,  // 2 MB: Tamaño a partir del cual se escribe en disco
-    maxFileSize = 1024 * 1024 * 50,       // 50 MB: Tamaño máximo de UN solo archivo
-    maxRequestSize = 1024 * 1024 * 100    // 100 MB: Tamaño máximo de la petición completa
+@WebServlet(
+   name = "LibroServlet",
+   urlPatterns = {"/LibroServlet"}
 )
-
+@MultipartConfig(
+   fileSizeThreshold = 2097152,
+   maxFileSize = 52428800L,
+   maxRequestSize = 104857600L
+)
 public class LibroServlet extends HttpServlet {
-//para funcionar cambiar unibiacion donde se encutra la carpeta raiz del proyecto 
-    private static final String UPLOAD_DIR = "C:\\Users\\salaz\\Desktop\\Java\\bibliotecaUniboyaca\\biblioteca_uploads";
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+   // ✅ RUTA DINÁMICA DENTRO DE WEBAPP
+   private String getUploadPath(HttpServletRequest request) {
+      String path = request.getServletContext().getRealPath("/biblioteca_uploads");
 
-        String accion = request.getParameter("accion");
+      File dir = new File(path);
+      if (!dir.exists()) {
+         dir.mkdirs();
+      }
 
-        if ("descargar".equals(accion)) {
-            try {
-                int id = Integer.parseInt(request.getParameter("id"));
-                LibroDAOImpl dao = new LibroDAOImpl();
-                Libro libro = dao.buscarPorId(id);
+      System.out.println("📁 RUTA DINÁMICA WEB: " + path);
+      return path;
+   }
 
-                if (libro != null && libro.getUrlPdf() != null && !libro.getUrlPdf().isEmpty()) {
-                    File downloadFile = new File(UPLOAD_DIR + File.separator + libro.getUrlPdf());
+   @Override
+   protected void doGet(HttpServletRequest request, HttpServletResponse response)
+         throws ServletException, IOException {
 
-                    if (downloadFile.exists()) {
-                        FileInputStream inStream = new FileInputStream(downloadFile);
+      String accion = request.getParameter("accion");
 
-                        String mimeType = getServletContext().getMimeType(downloadFile.getAbsolutePath());
-                        if (mimeType == null) {
-                            mimeType = "application/pdf";
-                        }
+      if ("descargar".equals(accion)) {
+         try {
+            int id = Integer.parseInt(request.getParameter("id"));
+            LibroDAOImpl dao = new LibroDAOImpl();
+            Libro libro = dao.buscarPorId(id);
 
-                        response.setContentType(mimeType);
-                        response.setContentLength((int) downloadFile.length());
+            if (libro != null && libro.getUrlPdf() != null && !libro.getUrlPdf().isEmpty()) {
 
-                        String headerKey = "Content-Disposition";
-                        String headerValue = String.format("attachment; filename=\"%s\"", libro.getUrlPdf());
-                        response.setHeader(headerKey, headerValue);
+               String uploadPath = getUploadPath(request);
+               File downloadFile = new File(uploadPath, libro.getUrlPdf());
 
-                        OutputStream outStream = response.getOutputStream();
-                        byte[] buffer = new byte[4096];
-                        int bytesRead = -1;
+               if (downloadFile.exists()) {
 
-                        while ((bytesRead = inStream.read(buffer)) != -1) {
-                            outStream.write(buffer, 0, bytesRead);
-                        }
+                  FileInputStream inStream = new FileInputStream(downloadFile);
+                  String mimeType = getServletContext().getMimeType(downloadFile.getAbsolutePath());
 
-                        inStream.close();
-                        outStream.flush();
-                        return;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+                  if (mimeType == null) {
+                     mimeType = "application/pdf";
+                  }
+
+                  response.setContentType(mimeType);
+                  response.setContentLength((int) downloadFile.length());
+
+                  String headerValue = String.format("attachment; filename=\"%s\"", libro.getUrlPdf());
+                  response.setHeader("Content-Disposition", headerValue);
+
+                  OutputStream outStream = response.getOutputStream();
+
+                  byte[] buffer = new byte[4096];
+                  int bytesRead;
+
+                  while ((bytesRead = inStream.read(buffer)) != -1) {
+                     outStream.write(buffer, 0, bytesRead);
+                  }
+
+                  inStream.close();
+                  outStream.flush();
+                  return;
+               } else {
+                  System.out.println("❌ PDF NO ENCONTRADO");
+               }
             }
-        } else if ("verImagen".equals(accion)) {
-            try {
-                int id = Integer.parseInt(request.getParameter("id"));
-                LibroDAOImpl dao = new LibroDAOImpl();
-                Libro libro = dao.buscarPorId(id);
 
-                if (libro != null && libro.getUrlImg() != null && !libro.getUrlImg().isEmpty()) {
-                    File imgFile = new File(UPLOAD_DIR + File.separator + libro.getUrlImg());
-
-                    if (imgFile.exists()) {
-                        FileInputStream inStream = new FileInputStream(imgFile);
-                        String mimeType = getServletContext().getMimeType(imgFile.getAbsolutePath());
-                        if (mimeType == null) {
-                            mimeType = "image/jpeg";
-                        }
-
-                        response.setContentType(mimeType);
-                        response.setContentLength((int) imgFile.length());
-
-                        OutputStream outStream = response.getOutputStream();
-                        byte[] buffer = new byte[4096];
-                        int bytesRead = -1;
-
-                        while ((bytesRead = inStream.read(buffer)) != -1) {
-                            outStream.write(buffer, 0, bytesRead);
-                        }
-
-                        inStream.close();
-                        outStream.flush();
-                        return;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return;
-        }
-
-        response.sendRedirect("libro.jsp");
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        request.setCharacterEncoding("UTF-8");
-        String accion = request.getParameter("accion");
-        LibroDAOImpl dao = new LibroDAOImpl();
-
-        try {
-            if ("insertar".equals(accion) || "actualizar".equals(accion)) {
-                Libro l = new Libro();
-                l.setTitulo(request.getParameter("txtTitulo"));
-                l.setIsbn(request.getParameter("txtIsbn"));
-                l.setIdAutor(Integer.parseInt(request.getParameter("txtAutor")));
-                l.setIdCategoria(Integer.parseInt(request.getParameter("txtCategoria")));
-
-                String edi = request.getParameter("txtEditorial");
-                l.setIdEditorial((edi != null && !edi.isEmpty()) ? Integer.parseInt(edi) : 0);
-                l.setDisponible(Integer.parseInt(request.getParameter("txtStock")));
-
-                Libro libroAnterior = null;
-                if ("actualizar".equals(accion)) {
-                    int id = Integer.parseInt(request.getParameter("txtId"));
-                    l.setIdLibro(id);
-                    libroAnterior = dao.buscarPorId(id);
-                }
-
-                File uploadDir = new File(UPLOAD_DIR);
-                if (!uploadDir.exists()) {
-                    uploadDir.mkdirs();
-                }
-
-                Part filePdfPart = request.getPart("filePdf");
-                String pdfName = getFileName(filePdfPart);
-                if (pdfName != null && !pdfName.isEmpty()) {
-                    String uniquePdfName = System.currentTimeMillis() + "_pdf_" + pdfName;
-                    filePdfPart.write(UPLOAD_DIR + File.separator + uniquePdfName);
-                    l.setUrlPdf(uniquePdfName);
-                } else if (libroAnterior != null) {
-                    l.setUrlPdf(libroAnterior.getUrlPdf());
-                }
-
-                Part fileImgPart = request.getPart("fileImg");
-                String imgName = getFileName(fileImgPart);
-                if (imgName != null && !imgName.isEmpty()) {
-                    String uniqueImgName = System.currentTimeMillis() + "_img_" + imgName;
-                    fileImgPart.write(UPLOAD_DIR + File.separator + uniqueImgName);
-                    l.setUrlImg(uniqueImgName);
-                } else if (libroAnterior != null) {
-                    l.setUrlImg(libroAnterior.getUrlImg());
-                }
-
-                boolean res = false;
-                if ("actualizar".equals(accion)) {
-                    res = dao.actualizar(l);
-                } else {
-                    res = dao.insertar(l);
-                }
-
-                if (res) {
-                    request.getSession().setAttribute("mensaje", "Operación exitosa.");
-                } else {
-                    request.getSession().setAttribute("error", "Error en la base de datos.");
-                }
-            }
-        } catch (Exception e) {
-            request.getSession().setAttribute("error", "Error: " + e.getMessage());
+         } catch (Exception e) {
             e.printStackTrace();
-        }
+         }
 
-        response.sendRedirect("libro.jsp");
-    }
+      } else if ("verImagen".equals(accion)) {
 
-    private String getFileName(Part part) {
-        String contentDisp = part.getHeader("content-disposition");
-        String[] tokens = contentDisp.split(";");
-        for (String token : tokens) {
-            if (token.trim().startsWith("filename")) {
-                return token.substring(token.indexOf("=") + 2, token.length() - 1);
+         try {
+            int id = Integer.parseInt(request.getParameter("id"));
+            LibroDAOImpl dao = new LibroDAOImpl();
+            Libro libro = dao.buscarPorId(id);
+
+            if (libro != null && libro.getUrlImg() != null && !libro.getUrlImg().isEmpty()) {
+
+               String uploadPath = getUploadPath(request);
+               File imgFile = new File(uploadPath, libro.getUrlImg());
+
+               if (imgFile.exists()) {
+
+                  FileInputStream inStream = new FileInputStream(imgFile);
+                  String mimeType = getServletContext().getMimeType(imgFile.getAbsolutePath());
+
+                  if (mimeType == null) {
+                     mimeType = "image/jpeg";
+                  }
+
+                  response.setContentType(mimeType);
+                  response.setContentLength((int) imgFile.length());
+
+                  OutputStream outStream = response.getOutputStream();
+
+                  byte[] buffer = new byte[4096];
+                  int bytesRead;
+
+                  while ((bytesRead = inStream.read(buffer)) != -1) {
+                     outStream.write(buffer, 0, bytesRead);
+                  }
+
+                  inStream.close();
+                  outStream.flush();
+                  return;
+               } else {
+                  System.out.println("❌ IMAGEN NO ENCONTRADA");
+               }
             }
-        }
-        return null;
-    }
+
+         } catch (Exception e) {
+            e.printStackTrace();
+         }
+
+         return;
+      }
+
+      response.sendRedirect("libro.jsp");
+   }
+
+   @Override
+   protected void doPost(HttpServletRequest request, HttpServletResponse response)
+         throws ServletException, IOException {
+
+      request.setCharacterEncoding("UTF-8");
+      String accion = request.getParameter("accion");
+      LibroDAOImpl dao = new LibroDAOImpl();
+
+      try {
+
+         if ("insertar".equals(accion) || "actualizar".equals(accion)) {
+
+            Libro l = new Libro();
+
+            l.setTitulo(request.getParameter("txtTitulo"));
+            l.setIsbn(request.getParameter("txtIsbn"));
+            l.setIdAutor(Integer.parseInt(request.getParameter("txtAutor")));
+            l.setIdCategoria(Integer.parseInt(request.getParameter("txtCategoria")));
+
+            String edi = request.getParameter("txtEditorial");
+            l.setIdEditorial(edi != null && !edi.isEmpty() ? Integer.parseInt(edi) : 0);
+
+            l.setDisponible(Integer.parseInt(request.getParameter("txtStock")));
+
+            Libro libroAnterior = null;
+
+            if ("actualizar".equals(accion)) {
+               int id = Integer.parseInt(request.getParameter("txtId"));
+               l.setIdLibro(id);
+               libroAnterior = dao.buscarPorId(id);
+            }
+
+            String uploadPath = getUploadPath(request);
+
+            // 📄 PDF
+            Part filePdfPart = request.getPart("filePdf");
+            String pdfName = getFileName(filePdfPart);
+
+            if (pdfName != null && !pdfName.isEmpty()) {
+               String uniquePdfName = System.currentTimeMillis() + "_pdf_" + pdfName;
+               filePdfPart.write(uploadPath + File.separator + uniquePdfName);
+               l.setUrlPdf(uniquePdfName);
+            } else if (libroAnterior != null) {
+               l.setUrlPdf(libroAnterior.getUrlPdf());
+            }
+
+            // 🖼️ IMAGEN
+            Part fileImgPart = request.getPart("fileImg");
+            String imgName = getFileName(fileImgPart);
+
+            if (imgName != null && !imgName.isEmpty()) {
+               String uniqueImgName = System.currentTimeMillis() + "_img_" + imgName;
+               fileImgPart.write(uploadPath + File.separator + uniqueImgName);
+               l.setUrlImg(uniqueImgName);
+            } else if (libroAnterior != null) {
+               l.setUrlImg(libroAnterior.getUrlImg());
+            }
+
+            boolean res;
+
+            if ("actualizar".equals(accion)) {
+               res = dao.actualizar(l);
+            } else {
+               res = dao.insertar(l);
+            }
+
+            if (res) {
+               request.getSession().setAttribute("mensaje", "Operación exitosa.");
+            } else {
+               request.getSession().setAttribute("error", "Error en la base de datos.");
+            }
+         }
+
+      } catch (Exception e) {
+         request.getSession().setAttribute("error", "Error: " + e.getMessage());
+         e.printStackTrace();
+      }
+
+      response.sendRedirect("libro.jsp");
+   }
+
+   // 🔹 Obtener nombre del archivo
+   private String getFileName(Part part) {
+      if (part == null) return null;
+      return Paths.get(part.getSubmittedFileName()).getFileName().toString();
+   }
 }
